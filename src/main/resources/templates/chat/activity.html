@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>アクティビティ - YAMABIKO</title>
+    <link rel="icon" th:href="@{/img/common/favicon.ico}" href="../static/img/common/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css" />
+</head>
+<body class="chat-page">
+    <div class="slack-container">
+        <!-- 左サイドバー -->
+        <div class="slack-sidebar">
+            <div class="slack-sidebar-header">
+                <div class="slack-workspace-icon">Y</div>
+                <div class="slack-workspace-name">YAMABIKO</div>
+            </div>
+            <div class="slack-sidebar-nav">
+                <a href="#" th:href="@{/chat}" class="slack-nav-item">
+                    <span class="slack-nav-icon">🏠</span>
+                    <span>ホーム</span>
+                </a>
+                <a href="#" th:href="@{/chat/dm}" class="slack-nav-item">
+                    <span class="slack-nav-icon">💬</span>
+                    <span>DM</span>
+                </a>
+                <a href="#" th:href="@{/chat/activity}" class="slack-nav-item active">
+                    <span class="slack-nav-icon">🔔</span>
+                    <span>アクティビティ</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- メインコンテンツ -->
+        <div class="slack-main">
+            <div class="slack-top-header">
+                <div class="slack-header-left">
+                    <div class="slack-header-channel-name">アクティビティ</div>
+                </div>
+            </div>
+            
+            <div class="slack-messages">
+                <div th:if="${activities == null || activities.isEmpty()}" style="text-align: center; padding: 40px; color: var(--slack-text-muted);">
+                    <p>アクティビティがありません。</p>
+                </div>
+                <div th:each="activity : ${activities}" class="slack-message">
+                    <div class="slack-message-avatar" th:text="${activity.userName != null ? activity.userName.substring(0, 1).toUpperCase() : '?'}">U</div>
+                    <div class="slack-message-content">
+                        <div class="slack-message-header">
+                            <span class="slack-message-author" th:text="${activity.userName != null ? activity.userName : activity.userId}">ユーザー名</span>
+                            <span class="slack-message-time" th:text="${#temporals.format(activity.createdAt, 'yyyy年M月d日 H:mm')}">時刻</span>
+                        </div>
+                        <div class="slack-message-text" th:text="${activity.activityMessage}">アクティビティメッセージ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

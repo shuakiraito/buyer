@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebPortal.com</title>
+    <link rel="icon" th:href="@{/img/common/favicon.ico}" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" />
+  </head>
+  <body>
+    <header>
+      <a th:href="@{/}">
+        <img class="header-logo" th:src="@{/img/common/webportal.png}" />
+        <strong>WebPortal.com</strong>
+      </a>
+      <a th:href="@{/logout}"> <img th:src="@{/img/common/exit.svg}" />ログアウト </a>
+    </header>
+
+    <main>
+      <h1 class="page-title">タスク 管理</h1>
+
+      <!-- メッセージ表示 -->
+      <p class="success-message" th:if="${message}" th:text="${message}"></p>
+      <p class="error-message" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+      <!-- タスク一覧 -->
+      <div class="card">
+        <div class="card-content">
+          <h2>タスク 一覧</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>タスク</th>
+                <th>期限日</th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="task, status : ${tasks}">
+                <td th:text="${status.count}"></td>
+                <td th:text="${task.title}"></td>
+                <td th:text="${#dates.format(task.limitday, 'yyyy-MM-dd')}"></td>
+                <td>
+                  <form method="post" th:action="@{/task/delete}">
+                    <input type="hidden" name="id" th:value="${task.id}" />
+                    <button class="bg-danger" type="submit">削除</button>
+                  </form>
+                </td>
+                <td>
+                  <form method="post" th:action="@{/task/complete}" th:if="${!task.completed}">
+                    <input type="hidden" name="id" th:value="${task.id}" />
+                    <button type="submit">完了</button>
+                  </form>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <form method="get" th:action="@{/task/download}">
+            <button class="bg-success" type="submit">csv出力</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- タスク登録 -->
+      <div class="card">
+        <div class="card-content">
+          <h2>タスク 登録</h2>
+          <form method="post" th:action="@{/task/insert}">
+            <label for="title">タスク内容</label>
+            <input type="text" id="title" name="title" placeholder="タスク内容" />
+
+            <label for="date">期限日*</label>
+            <input id="date" type="date" name="limit" />
+            <button class="bg-warning" type="submit">追加</button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <footer>&copy; 2024 WebPortal.com</footer>
+  </body>
+</html>

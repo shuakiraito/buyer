@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="'#' + ${channel.channelName} + ' - YAMABIKO'">チャット - YAMABIKO</title>
+    <link rel="icon" th:href="@{/img/common/favicon.ico}" href="../static/img/common/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body class="chat-page">
+    <div class="slack-container">
+        <!-- 左サイドバー -->
+        <div class="slack-sidebar">
+            <div class="slack-sidebar-header">
+                <div class="slack-workspace-icon">Y</div>
+                <div class="slack-workspace-name">YAMABIKO</div>
+            </div>
+            <div class="slack-sidebar-nav">
+                <a href="#" th:href="@{/chat}" class="slack-nav-item">
+                    <span class="slack-nav-icon">🏠</span>
+                    <span>ホーム</span>
+                </a>
+                <a href="#" th:href="@{/chat/dm}" class="slack-nav-item">
+                    <span class="slack-nav-icon">💬</span>
+                    <span>DM</span>
+                </a>
+                <a href="#" th:href="@{/chat/activity}" class="slack-nav-item">
+                    <span class="slack-nav-icon">🔔</span>
+                    <span>アクティビティ</span>
+                </a>
+                
+                <div class="slack-section">
+                    <div class="slack-section-header" id="channelSectionHeader" style="cursor: pointer;">▼ チャンネル</div>
+                    <ul class="slack-channel-list" id="channelList">
+                        <li th:each="ch : ${channels}" 
+                            class="slack-channel-item" 
+                            th:classappend="${ch.id == channel.id} ? 'active'">
+                            <a th:href="@{/chat/channel/{id}(id=${ch.id})}">
+                                <span class="slack-channel-hash">#</span>
+                                <span th:text="${ch.channelName}">チャンネル名</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="slack-create-channel">
+                <div class="slack-create-channel-form">
+                    <form method="post" th:action="@{/chat/channel/create}">
+                        <input type="text" name="channelName" placeholder="チャンネル名" required />
+                        <textarea name="description" placeholder="説明（任意）" rows="2"></textarea>
+                        <button type="submit">チャンネルを作成</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- メインコンテンツ -->
+        <div class="slack-main">
+            <!-- 上部ヘッダー -->
+            <div class="slack-top-header">
+                <div class="slack-header-left">
+                    <div class="slack-header-channel-name">
+                        <span class="slack-header-channel-hash">#</span>
+                        <span th:text="${channel.channelName}">チャンネル名</span>
+                    </div>
+                    <div class="channel-search-inline" id="channelSearchInline">
+                        <form id="channelSearchForm">
+                            <input
+                                id="channelSearchInput"
+                                class="channel-search-input"
+                                type="text"
+                                name="keyword"
+                                placeholder="メッセージを検索"
+                                autocomplete="off"
+                            />
+                        </form>
+                    </div>
+                </div>
+                <div class="slack-header-actions">
+                    <button class="slack-header-button" id="searchButton" title="検索" th:attr="data-channel-id=${channel.id}">🔍</button>
+                    <button class="slack-header-button" id="starButton" title="スター" th:attr="data-channel-id=${channel.id}">⭐</button>
+                    <button class="slack-header-button" id="addMemberButton" title="メンバーを追加" th:attr="data-channel-id=${channel.id}">👥</button>
+                    <button class="slack-header-button" id="channelSettingsButton" title="その他" th:attr="data-channel-id=${channel.id}">⋯</button>
+                </div>
+            </div>
+            
+            <!-- メッセージエリア -->
+            <div class="slack-messages" id="messages">
+                <div th:each="message : ${messages}" class="slack-message" th:attr="data-message-id=${message.id}">
+                    <div class="slack-message-avatar" th:text="${message.userName != null ? message.userName.substring(0, 1).toUpperCase() : '?'}">U</div>
+                    <div class="slack-message-content">
+                        <div class="slack-message-header">
+                            <span class="slack-message-author" th:text="${message.userName}">ユーザー名</span>
+                            <span class="slack-message-time" th:text="${#temporals.format(message.createdAt, 'yyyy年M月d日 H:mm')}">時刻</span>
+                            <span th:if="${message.isEdited}" class="slack-message-edited">(編集済み)</span>
+                        </div>
+                        <div class="slack-message-text" th:text="${message.messageText}">メッセージ</div>
+                        <div class="slack-message-files" th:attr="data-message-id=${message.id}">
+                            <!-- ファイルはJavaScriptで動的に追加 -->
+                        </div>
+                        <div class="slack-message-actions">
+                            <button class="slack-message-action-btn btn-edit" th:attr="data-message-id=${message.id}" th:if="${message.userId == userId}">編集</button>
+                            <button class="slack-message-action-btn btn-delete" th:attr="data-message-id=${message.id}" th:if="${message.userId == userId}">削除</button>
+                            <button class="slack-message-action-btn btn-unread" th:attr="data-message-id=${message.id}" th:if="${userRole == 'ROLE_TEACHER' || userRole == 'ROLE_ADMIN'}">未読者</button>
+                            <button class="slack-message-action-btn btn-remind" th:attr="data-message-id=${message.id}" th:if="${userRole == 'ROLE_TEACHER' || userRole == 'ROLE_ADMIN'}">リマインド</button>
+                            <button class="slack-message-action-btn btn-thread" th:attr="data-message-id=${message.id}">スレッド</button>
+                        </div>
+                        <div class="slack-message-reactions" th:attr="data-message-id=${message.id}">
+                            <!-- リアクションはJavaScriptで動的に追加 -->
+                        </div>
+                        <div class="slack-message-threads" th:attr="data-message-id=${message.id}">
+                            <div class="slack-thread-list thread-list" th:attr="data-message-id=${message.id}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- メッセージ入力エリア -->
+            <div class="slack-input-container">
+                <div class="slack-input-toolbar">
+                    <button class="slack-toolbar-btn" title="太字">B</button>
+                    <button class="slack-toolbar-btn" title="斜体">I</button>
+                    <button class="slack-toolbar-btn" title="下線">U</button>
+                    <button class="slack-toolbar-btn" title="取り消し線">S</button>
+                    <button class="slack-toolbar-btn" title="リンク">🔗</button>
+                    <button class="slack-toolbar-btn" title="リスト">•</button>
+                    <button class="slack-toolbar-btn" title="引用">❝</button>
+                    <button class="slack-toolbar-btn" title="コード">&lt;/&gt;</button>
+                </div>
+                <div class="slack-input-wrapper">
+                    <textarea 
+                        id="messageInput" 
+                        class="slack-message-input" 
+                        placeholder="'#' + ${channel.channelName} + ' へのメッセージ'" 
+                        rows="1"></textarea>
+                    <div class="slack-input-actions">
+                        <button class="slack-input-action-btn" id="emojiButton" title="絵文字">😊</button>
+                        <button class="slack-input-action-btn" id="mentionButton" title="メンション">@</button>
+                        <input type="file" id="fileInput" style="display: none;" multiple />
+                        <button class="slack-input-action-btn" id="fileButton" title="ファイル">📎</button>
+                        <button class="slack-send-btn" id="sendButton" type="button">送信</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        const channelId = /*[[${channel.id}]]*/ 0;
+        const userId = /*[[${userId}]]*/ '';
+        const userName = /*[[${userName}]]*/ '';
+        const userRole = /*[[${userRole}]]*/ 'ROLE_STUDENT';
+        const channelName = /*[[${channel.channelName}]]*/ '';
+        
+        const socket = new SockJS('/ws');
+        const stompClient = Stomp.over(socket);
+        
+        // メッセージ入力欄の自動リサイズ
+        const messageInput = document.getElementById('messageInput');
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+        
+        // プレースホルダーを設定
+        messageInput.placeholder = '#' + channelName + ' へのメッセージ';
+        
+        stompClient.connect({}, function(frame) {
+            console.log('Connected: ' + frame);
+            
+            stompClient.subscribe('/topic/messages', function(message) {
+                const data = JSON.parse(message.body);
+                if (data.channelId === channelId) {
+                    handleIncomingMessage(data);
+                }
+            });
+
+            stompClient.subscribe('/topic/threads', function(message) {
+                const data = JSON.parse(message.body);
+                handleThreadEvent(data);
+            });
+        });
+
+        function handleIncomingMessage(data) {
+            const eventType = (data.eventType || 'NEW').toUpperCase();
+            if (eventType === 'UPDATE') {
+                updateMessageFromEvent(data);
+            } else if (eventType === 'DELETE') {
+                markMessageAsDeleted(data.id);
+            } else {
+                addMessageToUI(data);
+            }
+        }
+
+        function handleThreadEvent(data) {
+            if (!data) {
+                return;
+            }
+            const eventChannelId = data.channelId != null ? Number(data.channelId) : null;
+            if (eventChannelId !== null && eventChannelId !== channelId) {
+                return;
+            }
+
+            const messageId = data.messageId != null ? String(data.messageId) : null;
+            if (!messageId) {
+                return;
+            }
+
+            const threadList = document.querySelector('.thread-list[data-message-id="' + messageId + '"]');
+            if (!threadList) {
+                return;
+            }
+
+            loadThreads(messageId);
+        }
+        
+        function addMessageToUI(data) {
+            if (!data) {
+                return;
+            }
+            if (data.deleted && data.id) {
+                markMessageAsDeleted(data.id);
+                return;
+            }
+
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            const messageId = data.id != null ? String(data.id) : '';
+            messageDiv.className = 'slack-message';
+            if (messageId) {
+                messageDiv.setAttribute('data-message-id', messageId);
+            }
+
+            const createdAt = parseDate(data.createdAt);
+            const timeStr = formatDateTime(createdAt);
+            const displayName = data.userName || data.userId || '?';
+            const avatarText = displayName.substring(0, 1).toUpperCase();
+            const safeMessage = data.messageText ? escapeHtml(data.messageText) : '';
+
+            let actionsHtml = '';
+            if (data.userId === userId) {
+                actionsHtml = '<button class="slack-message-action-btn btn-edit" data-message-id="' + messageId + '">編集</button>' +
+                    '<button class="slack-message-action-btn btn-delete" data-message-id="' + messageId + '">削除</button>';
+            }
+            if (userRole === 'ROLE_TEACHER' || userRole === 'ROLE_ADMIN') {
+                actionsHtml += '<button class="slack-message-action-btn btn-unread" data-message-id="' + messageId + '">未読者</button>' +
+                    '<button class="slack-message-action-btn btn-remind" data-message-id="' + messageId + '">リマインド</button>';
+            }
+            actionsHtml += '<button class="slack-message-action-btn btn-thread" data-message-id="' + messageId + '">スレッド</button>';
+
+            messageDiv.innerHTML =
+                '<div class="slack-message-avatar">' + escapeHtml(avatarText) + '</div>' +
+                '<div class="slack-message-content">' +
+                '<div class="slack-message-header">' +
+                '<span class="slack-message-author">' + escapeHtml(displayName) + '</span>' +
+                '<span class="slack-message-time">' + timeStr + '</span>' +
+                (data.edited ? '<span class="slack-message-edited">(編集済み)</span>' : '') +
+                '</div>' +
+                '<div class="slack-message-text">' + safeMessage + '</div>' +
+                '<div class="slack-message-files" data-message-id="' + messageId + '"></div>' +
+                '<div class="slack-message-actions">' + actionsHtml + '</div>' +
+                '<div class="slack-message-reactions" data-message-id="' + messageId + '"></div>' +
+                '<div class="slack-message-threads" data-message-id="' + messageId + '">' +
+                '<div class="slack-thread-list thread-list" data-message-id="' + messageId + '"></div>' +
+                '</div>' +
+                '</div>';
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            attachMessageEventListeners(messageDiv);
+
+            if (messageId) {
+                loadMessageFiles(messageId);
+                markMessageAsRead(messageId);
+            }
+        }
+        
+        function parseDate(value) {
+            if (!value) {
+                return new Date();
+            }
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+
+        function formatDateTime(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return year + '年' + month + '月' + day + '日 ' + hours + ':' + minutes;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function attachMessageEventListeners(messageDiv) {
+            const editBtn = messageDiv.querySelector('.btn-edit');
+            if (editBtn) {
+                editBtn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-message-id');
+                    editMessage(messageId);
+                });
+            }
+            
+            const deleteBtn = messageDiv.querySelector('.btn-delete');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-message-id');
+                    deleteMessage(messageId);
+                });
+            }
+            
+            const unreadBtn = messageDiv.querySelector('.btn-unread');
+            if (unreadBtn) {
+                unreadBtn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-message-id');
+                    showUnreadUsers(messageId);
+                });
+            }
+            
+            const remindBtn = messageDiv.querySelector('.btn-remind');
+            if (remindBtn) {
+                remindBtn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-message-id');
+                    sendReminder(messageId);
+                });
+            }
+            
+            const threadBtn = messageDiv.querySelector('.btn-thread');
+            if (threadBtn) {
+                threadBtn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-message-id');
+                    showThreadInput(messageId);
+                });
+            }
+            
+            const reactionsDiv = messageDiv.querySelector('.slack-message-reactions');
+            if (reactionsDiv) {
+                reactionsDiv.addEventListener('click', function(e) {
+                    const pill = e.target.closest('.reaction-pill');
+                    if (pill) {
+                        const messageId = reactionsDiv.getAttribute('data-message-id');
+                        const emoji = pill.getAttribute('data-emoji');
+                        const isActive = pill.getAttribute('data-reacted') === 'true';
+                        if (messageId && emoji) {
+                            toggleReaction(messageId, null, emoji, isActive);
+                        }
+                        return;
+                    }
+
+                    const trigger = e.target.closest('.reaction-trigger');
+                    if (trigger) {
+                        const messageId = reactionsDiv.getAttribute('data-message-id');
+                        if (messageId) {
+                            showReactionPicker(trigger, messageId);
+                        }
+                    }
+                });
+                loadReactions(reactionsDiv.getAttribute('data-message-id'));
+            }
+        }
+
+        function updateMessageFromEvent(data) {
+            if (!data || data.id == null) {
+                return;
+            }
+            updateMessageInUI(String(data.id), data.messageText || '', {
+                edited: data.edited,
+                updatedAt: data.updatedAt
+            });
+        }
+
+        function updateMessageInUI(messageId, messageText, options = {}) {
+            if (!messageId) {
+                return;
+            }
+            const messageDiv = document.querySelector('.slack-message[data-message-id="' + messageId + '"]');
+            if (!messageDiv) {
+                return;
+            }
+
+            const messageTextDiv = messageDiv.querySelector('.slack-message-text');
+            if (messageTextDiv) {
+                messageTextDiv.textContent = messageText;
+                messageTextDiv.classList.remove('slack-message-text-deleted');
+                messageTextDiv.style.removeProperty('font-style');
+                messageTextDiv.style.removeProperty('color');
+            }
+
+            const header = messageDiv.querySelector('.slack-message-header');
+            if (header) {
+                const edited = options.edited !== undefined ? options.edited : true;
+                let editedSpan = header.querySelector('.slack-message-edited');
+                if (edited) {
+                    if (!editedSpan) {
+                        editedSpan = document.createElement('span');
+                        editedSpan.className = 'slack-message-edited';
+                        editedSpan.textContent = '(編集済み)';
+                        header.appendChild(editedSpan);
+                    } else {
+                        editedSpan.textContent = '(編集済み)';
+                    }
+                } else if (editedSpan) {
+                    editedSpan.remove();
+                }
+
+                if (options.updatedAt) {
+                    const timeSpan = header.querySelector('.slack-message-time');
+                    if (timeSpan) {
+                        timeSpan.textContent = formatDateTime(parseDate(options.updatedAt));
+                    }
+                }
+            }
+
+            const actions = messageDiv.querySelectorAll('.slack-message-actions button');
+            actions.forEach(btn => {
+                btn.disabled = false;
+            });
+
+            messageDiv.classList.remove('slack-message-deleted');
+            messageDiv.style.removeProperty('opacity');
+        }
+
+        function markMessageAsDeleted(messageId) {
+            if (!messageId) {
+                return;
+            }
+            const messageDiv = document.querySelector('.slack-message[data-message-id="' + messageId + '"]');
+            if (!messageDiv) {
+                return;
+            }
+
+            const messageTextDiv = messageDiv.querySelector('.slack-message-text');
+            if (messageTextDiv) {
+                messageTextDiv.textContent = 'このメッセージは削除されました';
+                messageTextDiv.classList.add('slack-message-text-deleted');
+                messageTextDiv.style.fontStyle = 'italic';
+                messageTextDiv.style.color = 'var(--slack-text-secondary, #888)';
+            }
+
+            const actions = messageDiv.querySelectorAll('.slack-message-actions button');
+            actions.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            messageDiv.classList.add('slack-message-deleted');
+            messageDiv.style.opacity = '0.6';
+        }
+        
+        function editMessage(messageId) {
+            const messageDiv = document.querySelector('[data-message-id="' + messageId + '"]');
+            const messageTextDiv = messageDiv.querySelector('.slack-message-text');
+            const currentText = messageTextDiv.textContent;
+            
+            const input = document.createElement('textarea');
+            input.value = currentText;
+            input.className = 'slack-message-input';
+            input.style.width = '100%';
+            input.style.minHeight = '60px';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = '保存';
+            saveBtn.className = 'slack-send-btn';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'キャンセル';
+            cancelBtn.className = 'slack-message-action-btn';
+            
+            messageTextDiv.innerHTML = '';
+            messageTextDiv.appendChild(input);
+            messageTextDiv.appendChild(saveBtn);
+            messageTextDiv.appendChild(cancelBtn);
+            
+            saveBtn.addEventListener('click', function() {
+                const newText = input.value.trim();
+                if (newText) {
+                    updateMessage(messageId, newText);
+                }
+            });
+            
+            cancelBtn.addEventListener('click', function() {
+                messageTextDiv.textContent = currentText;
+            });
+        }
+        
+        function updateMessage(messageId, messageText) {
+            const formData = new FormData();
+            formData.append('messageId', messageId);
+            formData.append('messageText', messageText);
+            
+            fetch('/chat/message/update', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    updateMessageInUI(messageId, messageText, { edited: true });
+                } else {
+                    response.text().then(text => {
+                        alert(text || 'メッセージの更新に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                alert('メッセージの更新に失敗しました');
+            });
+        }
+        
+        function deleteMessage(messageId) {
+            if (!confirm('このメッセージを削除しますか？')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('messageId', messageId);
+            
+            fetch('/chat/message/delete', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    markMessageAsDeleted(messageId);
+                } else {
+                    response.text().then(text => {
+                        alert(text || 'メッセージの削除に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                alert('メッセージの削除に失敗しました');
+            });
+        }
+        
+        function showUnreadUsers(messageId) {
+            fetch('/chat/message/' + messageId + '/unread')
+                .then(response => response.json())
+                .then(data => {
+                    const userList = data.map(u => u.userName || u.userId).join(', ');
+                    alert('未読者: ' + (userList || 'なし'));
+                });
+        }
+        
+        function sendReminder(messageId) {
+            if (!confirm('未読者にリマインドを送信しますか？')) {
+                return;
+            }
+            
+            fetch('/chat/message/' + messageId + '/remind', {
+                method: 'POST'
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+            });
+        }
+        
+        function showThreadInput(messageId) {
+            const threadList = document.querySelector('.thread-list[data-message-id="' + messageId + '"]');
+            if (!threadList) return;
+            
+            const existingInput = threadList.querySelector('.thread-input-wrapper');
+            if (existingInput) {
+                existingInput.remove();
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'thread-input-wrapper';
+
+            const input = document.createElement('textarea');
+            input.placeholder = 'スレッドで返信...';
+            input.className = 'slack-message-input';
+            input.style.width = '100%';
+            input.style.minHeight = '60px';
+            
+            const actionBar = document.createElement('div');
+            actionBar.style.marginTop = '8px';
+            actionBar.style.display = 'flex';
+            actionBar.style.gap = '8px';
+
+            const sendBtn = document.createElement('button');
+            sendBtn.textContent = '送信';
+            sendBtn.className = 'slack-send-btn';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'キャンセル';
+            cancelBtn.className = 'slack-message-action-btn';
+
+            actionBar.appendChild(sendBtn);
+            actionBar.appendChild(cancelBtn);
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(actionBar);
+
+            threadList.appendChild(wrapper);
+
+            sendBtn.addEventListener('click', function() {
+                const threadText = input.value.trim();
+                if (threadText) {
+                    createThread(messageId, threadText);
+                }
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                wrapper.remove();
+            });
+        }
+        
+        function createThread(messageId, threadText) {
+            const formData = new FormData();
+            formData.append('messageId', messageId);
+            formData.append('threadText', threadText);
+            
+            fetch('/chat/thread/create', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    loadThreads(messageId);
+                } else {
+                    response.text().then(text => {
+                        alert(text || 'スレッドの作成に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                alert('スレッドの作成に失敗しました');
+            });
+        }
+        
+        function loadThreads(messageId) {
+            fetch('/chat/thread/' + messageId)
+                .then(response => response.json())
+                .then(threads => {
+                    const threadList = document.querySelector('.thread-list[data-message-id="' + messageId + '"]');
+                    if (threadList) {
+                        threadList.innerHTML = threads.map(t => {
+                            const author = escapeHtml(t.userName || t.userId);
+                            const text = escapeHtml(t.threadText || '');
+                            const editedLabel = t.isEdited ? '<span class="slack-thread-edited">(編集済み)</span>' : '';
+                            const timeLabel = t.createdAt ? '<span class="slack-thread-time">' + formatDateTime(parseDate(t.createdAt)) + '</span>' : '';
+                            const canEdit = t.userId === userId;
+                            const actions = canEdit
+                                ? '<div class="slack-thread-actions">' +
+                                    '<button class="slack-message-action-btn btn-thread-edit" data-thread-id="' + t.id + '" data-message-id="' + t.messageId + '">編集</button>' +
+                                    '<button class="slack-message-action-btn btn-thread-delete" data-thread-id="' + t.id + '" data-message-id="' + t.messageId + '">削除</button>' +
+                                  '</div>'
+                                : '';
+                            return '<div class="slack-thread-item" data-thread-id="' + t.id + '" data-message-id="' + t.messageId + '">' +
+                                '<div class="slack-thread-header">' +
+                                    '<span class="slack-thread-author">' + author + '</span>' +
+                                    timeLabel +
+                                    editedLabel +
+                                '</div>' +
+                                '<div class="slack-thread-text">' + text + '</div>' +
+                                actions +
+                            '</div>';
+                        }).join('');
+
+                        attachThreadEventListeners(threadList);
+                    }
+                })
+                .catch(() => {
+                    // ignore load errors temporarily
+                });
+        }
+
+        function attachThreadEventListeners(threadList) {
+            threadList.querySelectorAll('.btn-thread-edit').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const threadId = this.getAttribute('data-thread-id');
+                    editThread(threadId);
+                });
+            });
+
+            threadList.querySelectorAll('.btn-thread-delete').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const threadId = this.getAttribute('data-thread-id');
+                    deleteThread(threadId);
+                });
+            });
+        }
+
+        function editThread(threadId) {
+            const threadItem = document.querySelector('.slack-thread-item[data-thread-id="' + threadId + '"]');
+            if (!threadItem) return;
+
+            const textDiv = threadItem.querySelector('.slack-thread-text');
+            if (!textDiv || textDiv.querySelector('textarea')) {
+                return;
+            }
+
+            const originalText = textDiv.textContent;
+            const textarea = document.createElement('textarea');
+            textarea.className = 'slack-message-input';
+            textarea.style.width = '100%';
+            textarea.style.minHeight = '60px';
+            textarea.value = originalText;
+
+            const actionBar = document.createElement('div');
+            actionBar.style.marginTop = '8px';
+            actionBar.style.display = 'flex';
+            actionBar.style.gap = '8px';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = '保存';
+            saveBtn.className = 'slack-send-btn';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'キャンセル';
+            cancelBtn.className = 'slack-message-action-btn';
+
+            textDiv.innerHTML = '';
+            textDiv.appendChild(textarea);
+            actionBar.appendChild(saveBtn);
+            actionBar.appendChild(cancelBtn);
+            textDiv.appendChild(actionBar);
+
+            saveBtn.addEventListener('click', function() {
+                const newText = textarea.value.trim();
+                if (newText) {
+                    updateThreadRequest(threadId, newText);
+                }
+            });
+
+            cancelBtn.addEventListener('click', function() {
+                textDiv.textContent = originalText;
+            });
+        }
+
+        function updateThreadRequest(threadId, threadText) {
+            const threadItem = document.querySelector('.slack-thread-item[data-thread-id="' + threadId + '"]');
+            if (!threadItem) return;
+            const messageId = threadItem.getAttribute('data-message-id');
+
+            const formData = new FormData();
+            formData.append('threadId', threadId);
+            formData.append('threadText', threadText);
+
+            fetch('/chat/thread/update', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok && messageId) {
+                    loadThreads(messageId);
+                } else if (!response.ok) {
+                    response.text().then(text => {
+                        alert(text || 'スレッドの更新に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                alert('スレッドの更新に失敗しました');
+            });
+        }
+
+        function deleteThread(threadId) {
+            if (!confirm('このスレッドを削除しますか？')) {
+                return;
+            }
+
+            const threadItem = document.querySelector('.slack-thread-item[data-thread-id="' + threadId + '"]');
+            if (!threadItem) return;
+            const messageId = threadItem.getAttribute('data-message-id');
+
+            const formData = new FormData();
+            formData.append('threadId', threadId);
+
+            fetch('/chat/thread/delete', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok && messageId) {
+                    loadThreads(messageId);
+                } else if (!response.ok) {
+                    response.text().then(text => {
+                        alert(text || 'スレッドの削除に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                alert('スレッドの削除に失敗しました');
+            });
+        }
+        
+        function toggleReaction(messageId, threadId, emoji, remove = false) {
+            const reactionsDiv = document.querySelector('.slack-message-reactions[data-message-id="' + messageId + '"]');
+            if (!reactionsDiv) return;
+            
+            const formData = new FormData();
+            if (messageId) formData.append('messageId', messageId);
+            if (threadId) formData.append('threadId', threadId);
+            formData.append('emoji', emoji);
+            
+            fetch(remove ? '/chat/reaction/remove' : '/chat/reaction/add', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    loadReactions(messageId);
+                } else {
+                    response.text().then(text => {
+                        console.error(text || 'リアクション操作に失敗しました');
+                    });
+                }
+            }).catch(() => {
+                console.error('リアクション操作に失敗しました');
+            });
+        }
+        
+        function loadReactions(messageId) {
+            if (!messageId) return;
+            
+            fetch('/chat/message/' + messageId + '/reactions')
+                .then(response => response.json())
+                .then(reactions => {
+                    const reactionsDiv = document.querySelector('.slack-message-reactions[data-message-id="' + messageId + '"]');
+                    if (reactionsDiv) {
+                        const grouped = {};
+                        reactions.forEach(r => {
+                            if (!grouped[r.emoji]) {
+                                grouped[r.emoji] = { count: 0, reacted: false };
+                            }
+                            grouped[r.emoji].count += 1;
+                            if (r.userId === userId) {
+                                grouped[r.emoji].reacted = true;
+                            }
+                        });
+                        
+                        const triggerButton = '<button type="button" class="reaction-trigger" title="リアクションを追加">😊</button>';
+                        const pills = Object.entries(grouped).map(([emoji, meta]) =>
+                            '<button type="button" class="reaction-pill' + (meta.reacted ? ' active' : '') + '" data-emoji="' + emoji + '" data-reacted="' + meta.reacted + '">' +
+                                '<span class="reaction-pill-emoji">' + emoji + '</span>' +
+                                '<span class="reaction-pill-count">' + meta.count + '</span>' +
+                            '</button>'
+                        ).join('');
+                        
+                        reactionsDiv.innerHTML = triggerButton + pills;
+                    }
+                });
+        }
+        
+        function markMessageAsRead(messageId) {
+            fetch('/chat/message/' + messageId + '/read', {
+                method: 'POST'
+            });
+        }
+        
+        function loadMessageFiles(messageId) {
+            if (!messageId) return;
+            
+            fetch('/chat/message/' + messageId + '/files')
+                .then(response => response.json())
+                .then(files => {
+                    const filesDiv = document.querySelector('.slack-message-files[data-message-id="' + messageId + '"]');
+                    if (filesDiv && files.length > 0) {
+                        filesDiv.innerHTML = files.map(f => 
+                            '<div style="margin-top: 8px; padding: 8px; background-color: var(--pale-gray-color); border-radius: 4px;">' +
+                            '📎 <a href="' + f.filePath + '" target="_blank" style="color: var(--slack-accent);">' + 
+                            escapeHtml(f.fileName) + '</a> (' + formatFileSize(f.fileSize) + ')' +
+                            '</div>'
+                        ).join('');
+                    }
+                })
+                .catch(() => {
+                    // エラー時は無視
+                });
+        }
+        
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        document.getElementById('sendButton').addEventListener('click', function() {
+            sendMessage();
+        });
+        
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // sendMessage関数は上で定義済み
+        
+        // チャンネルセクションの折りたたみ/展開
+        document.getElementById('channelSectionHeader').addEventListener('click', function() {
+            const channelList = document.getElementById('channelList');
+            const isHidden = channelList.style.display === 'none';
+            channelList.style.display = isHidden ? 'block' : 'none';
+            this.textContent = isHidden ? '▼ チャンネル' : '▶ チャンネル';
+        });
+
+        // チャンネルスター機能
+        document.getElementById('starButton').addEventListener('click', function() {
+            const channelId = this.getAttribute('data-channel-id');
+            fetch('/chat/channel/' + channelId + '/star', {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    // スター状態を更新（視覚的フィードバック）
+                    this.style.opacity = this.style.opacity === '0.5' ? '1' : '0.5';
+                }
+            });
+        });
+
+        // チャンネル検索
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const channelId = this.getAttribute('data-channel-id');
+            const searchInline = document.getElementById('channelSearchInline');
+            const searchInput = document.getElementById('channelSearchInput');
+            searchInline.classList.toggle('is-active');
+            if (searchInline.classList.contains('is-active')) {
+                searchInput.focus();
+                searchInput.setSelectionRange(0, searchInput.value.length);
+            }
+        });
+
+        const channelSearchForm = document.getElementById('channelSearchForm');
+        channelSearchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const channelId = document.getElementById('searchButton').getAttribute('data-channel-id');
+            const keyword = document.getElementById('channelSearchInput').value.trim();
+            const params = new URLSearchParams();
+            if (keyword) {
+                params.append('keyword', keyword);
+            }
+            if (channelId) {
+                params.append('channelId', channelId);
+            }
+            window.location.href = '/chat/search?' + params.toString();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const searchInline = document.getElementById('channelSearchInline');
+                if (searchInline.classList.contains('is-active')) {
+                    searchInline.classList.remove('is-active');
+                }
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            const searchInline = document.getElementById('channelSearchInline');
+            const searchButton = document.getElementById('searchButton');
+            if (!searchInline.contains(e.target) && e.target !== searchButton && !searchButton.contains(e.target)) {
+                searchInline.classList.remove('is-active');
+            }
+        });
+
+        // チャンネルメンバー追加
+        document.getElementById('addMemberButton').addEventListener('click', function() {
+            const channelId = this.getAttribute('data-channel-id');
+            showAddMemberDialog(channelId);
+        });
+
+        function showAddMemberDialog(channelId) {
+            fetch('/chat/users')
+                .then(response => response.json())
+                .then(users => {
+                    const userList = users.map(u => 
+                        '<div style="padding: 8px; cursor: pointer; border-bottom: 1px solid var(--slack-border);" onclick="addMemberToChannel(' + channelId + ', \'' + u.userId() + '\')">' +
+                        escapeHtml(u.userName() || u.userId()) +
+                        '</div>'
+                    ).join('');
+                    
+                    const dialog = document.createElement('div');
+                    dialog.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--slack-sidebar-bg); padding: 20px; border-radius: 8px; z-index: 1000; max-width: 400px; max-height: 500px; overflow-y: auto;';
+                    dialog.innerHTML = 
+                        '<h3 style="margin-top: 0; color: var(--slack-text-primary);">メンバーを追加</h3>' +
+                        '<div>' + userList + '</div>' +
+                        '<button onclick="this.parentElement.remove()" style="margin-top: 16px; width: 100%;" class="slack-send-btn">閉じる</button>';
+                    document.body.appendChild(dialog);
+                });
+        }
+
+        function addMemberToChannel(channelId, memberUserId) {
+            const formData = new FormData();
+            formData.append('userId', memberUserId);
+            
+            fetch('/chat/channel/' + channelId + '/add-member', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    alert('メンバーを追加しました');
+                    location.reload();
+                }
+            });
+        }
+
+        // チャンネル設定
+        document.getElementById('channelSettingsButton').addEventListener('click', function() {
+            const channelId = this.getAttribute('data-channel-id');
+            showChannelSettings(channelId);
+        });
+
+        function showChannelSettings(channelId) {
+            const description = prompt('チャンネルの説明を編集:', '');
+            if (description !== null) {
+                const formData = new FormData();
+                formData.append('description', description);
+                
+                fetch('/chat/channel/' + channelId + '/update', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        alert('チャンネルを更新しました');
+                        location.reload();
+                    }
+                });
+            }
+        }
+
+        // フォーマットツールバー
+        document.querySelectorAll('.slack-toolbar-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const title = this.getAttribute('title');
+                const messageInput = document.getElementById('messageInput');
+                const start = messageInput.selectionStart;
+                const end = messageInput.selectionEnd;
+                const selectedText = messageInput.value.substring(start, end);
+                let replacement = '';
+                
+                switch(title) {
+                    case '太字':
+                        replacement = '**' + (selectedText || '太字') + '**';
+                        break;
+                    case '斜体':
+                        replacement = '*' + (selectedText || '斜体') + '*';
+                        break;
+                    case '下線':
+                        replacement = '<u>' + (selectedText || '下線') + '</u>';
+                        break;
+                    case '取り消し線':
+                        replacement = '~~' + (selectedText || '取り消し線') + '~~';
+                        break;
+                    case 'リンク':
+                        replacement = '[リンクテキスト](URL)';
+                        break;
+                    case 'リスト':
+                        replacement = '- ' + (selectedText || 'リスト項目');
+                        break;
+                    case '引用':
+                        replacement = '> ' + (selectedText || '引用テキスト');
+                        break;
+                    case 'コード':
+                        replacement = '`' + (selectedText || 'コード') + '`';
+                        break;
+                }
+                
+                messageInput.value = messageInput.value.substring(0, start) + replacement + messageInput.value.substring(end);
+                messageInput.focus();
+                messageInput.setSelectionRange(start + replacement.length, start + replacement.length);
+            });
+        });
+
+        // 絵文字ピッカー
+        const emojiList = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'];
+        
+        document.getElementById('emojiButton').addEventListener('click', function() {
+            showEmojiPicker(messageInput);
+        });
+
+        function showEmojiPicker(inputElement) {
+            const picker = document.createElement('div');
+            picker.style.cssText = 'position: absolute; background: var(--slack-sidebar-bg); border: 1px solid var(--slack-border); border-radius: 8px; padding: 12px; z-index: 1000; max-width: 300px; max-height: 300px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;';
+            
+            emojiList.forEach(emoji => {
+                const emojiBtn = document.createElement('button');
+                emojiBtn.textContent = emoji;
+                emojiBtn.style.cssText = 'background: none; border: none; font-size: 24px; cursor: pointer; padding: 4px;';
+                emojiBtn.addEventListener('click', function() {
+                    const start = inputElement.selectionStart;
+                    inputElement.value = inputElement.value.substring(0, start) + emoji + inputElement.value.substring(start);
+                    inputElement.focus();
+                    inputElement.setSelectionRange(start + emoji.length, start + emoji.length);
+                    picker.remove();
+                });
+                picker.appendChild(emojiBtn);
+            });
+            
+            const rect = inputElement.getBoundingClientRect();
+            picker.style.top = (rect.top - 320) + 'px';
+            picker.style.left = rect.left + 'px';
+            document.body.appendChild(picker);
+            
+            setTimeout(() => {
+                document.addEventListener('click', function closePicker(e) {
+                    if (!picker.contains(e.target) && e.target !== inputElement) {
+                        picker.remove();
+                        document.removeEventListener('click', closePicker);
+                    }
+                });
+            }, 100);
+        }
+
+        // メンション機能
+        document.getElementById('mentionButton').addEventListener('click', function() {
+            showMentionPicker(messageInput);
+        });
+
+        function showMentionPicker(inputElement) {
+            fetch('/chat/users')
+                .then(response => response.json())
+                .then(users => {
+                    const picker = document.createElement('div');
+                    picker.style.cssText = 'position: absolute; background: var(--slack-sidebar-bg); border: 1px solid var(--slack-border); border-radius: 8px; padding: 8px; z-index: 1000; max-width: 300px; max-height: 300px; overflow-y: auto;';
+                    
+                    users.forEach(user => {
+                        const userBtn = document.createElement('div');
+                        userBtn.textContent = '@' + (user.userName() || user.userId());
+                        userBtn.style.cssText = 'padding: 8px; cursor: pointer; border-bottom: 1px solid var(--slack-border); color: var(--slack-text-primary);';
+                        userBtn.addEventListener('click', function() {
+                            const start = inputElement.selectionStart;
+                            const mention = '@' + user.userId() + ' ';
+                            inputElement.value = inputElement.value.substring(0, start) + mention + inputElement.value.substring(start);
+                            inputElement.focus();
+                            inputElement.setSelectionRange(start + mention.length, start + mention.length);
+                            picker.remove();
+                        });
+                        picker.appendChild(userBtn);
+                    });
+                    
+                    const rect = inputElement.getBoundingClientRect();
+                    picker.style.top = (rect.top - 200) + 'px';
+                    picker.style.left = rect.left + 'px';
+                    document.body.appendChild(picker);
+                    
+                    setTimeout(() => {
+                        document.addEventListener('click', function closePicker(e) {
+                            if (!picker.contains(e.target) && e.target !== inputElement) {
+                                picker.remove();
+                                document.removeEventListener('click', closePicker);
+                            }
+                        });
+                    }, 100);
+                });
+        }
+
+        // ファイルアップロード
+        document.getElementById('fileButton').addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+
+        let pendingFiles = [];
+        
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                pendingFiles = files;
+                alert(files.length + '個のファイルが選択されました。メッセージを送信するとアップロードされます。');
+            }
+        });
+        
+        // メッセージ送信関数を拡張
+        const originalSendMessageFunction = function() {
+            const messageText = messageInput.value.trim();
+            
+            if (messageText) {
+                const chatMessage = {
+                    channelId: channelId,
+                    userId: userId,
+                    userName: userName,
+                    messageText: messageText
+                };
+                
+                stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                
+                // ファイルをアップロード（メッセージ送信後に最新のメッセージIDを取得）
+                if (pendingFiles.length > 0) {
+                    setTimeout(() => {
+                        fetch('/chat/message/latest?channelId=' + channelId)
+                            .then(response => response.json())
+                            .then(message => {
+                                if (message && message.id) {
+                                    uploadFiles(message.id, pendingFiles);
+                                    pendingFiles = [];
+                                    document.getElementById('fileInput').value = '';
+                                }
+                            })
+                            .catch(() => {
+                                pendingFiles = [];
+                                document.getElementById('fileInput').value = '';
+                            });
+                    }, 500);
+                }
+            } else if (pendingFiles.length > 0) {
+                // メッセージテキストがなくてもファイルのみ送信可能
+                const chatMessage = {
+                    channelId: channelId,
+                    userId: userId,
+                    userName: userName,
+                    messageText: '[ファイル]'
+                };
+                
+                stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
+                
+                setTimeout(() => {
+                    fetch('/chat/message/latest?channelId=' + channelId)
+                        .then(response => response.json())
+                        .then(message => {
+                            if (message && message.id) {
+                                uploadFiles(message.id, pendingFiles);
+                                pendingFiles = [];
+                                document.getElementById('fileInput').value = '';
+                            }
+                        })
+                        .catch(() => {
+                            pendingFiles = [];
+                            document.getElementById('fileInput').value = '';
+                        });
+                }, 500);
+            }
+        };
+        
+        // 元のsendMessage関数を置き換え
+        window.sendMessage = originalSendMessageFunction;
+        
+        function uploadFiles(messageId, files) {
+            files.forEach(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                fetch('/chat/message/' + messageId + '/file', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            });
+        }
+
+        function showReactionPicker(anchorElement, messageId) {
+            const picker = document.createElement('div');
+            picker.style.cssText = 'position: fixed; background: var(--slack-sidebar-bg); border: 1px solid var(--slack-border); border-radius: 8px; padding: 12px; z-index: 1000; max-width: 300px; max-height: 300px; overflow-y: auto; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;';
+            
+            emojiList.slice(0, 32).forEach(emoji => {
+                const emojiBtn = document.createElement('button');
+                emojiBtn.textContent = emoji;
+                emojiBtn.style.cssText = 'background: none; border: none; font-size: 24px; cursor: pointer; padding: 4px;';
+                emojiBtn.addEventListener('click', function() {
+                    toggleReaction(messageId, null, emoji);
+                    picker.remove();
+                });
+                picker.appendChild(emojiBtn);
+            });
+            
+            const rect = anchorElement.getBoundingClientRect();
+            const pickerHeight = 320;
+            const topPosition = rect.top - pickerHeight > 0 ? rect.top - pickerHeight : rect.bottom + 8;
+            picker.style.top = topPosition + 'px';
+            picker.style.left = rect.left + 'px';
+            document.body.appendChild(picker);
+            
+            setTimeout(() => {
+                document.addEventListener('click', function closePicker(e) {
+                    if (!picker.contains(e.target) && !anchorElement.contains(e.target)) {
+                        picker.remove();
+                        document.removeEventListener('click', closePicker);
+                    }
+                });
+            }, 100);
+        }
+
+        window.addEventListener('load', function() {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            document.querySelectorAll('.slack-message').forEach(msg => {
+                attachMessageEventListeners(msg);
+                const messageId = msg.getAttribute('data-message-id');
+                if (messageId) {
+                    loadReactions(messageId);
+                    loadThreads(messageId);
+                    loadMessageFiles(messageId);
+                    markMessageAsRead(messageId);
+                }
+            });
+            
+            // スター状態を確認
+            fetch('/chat/channel/' + channelId + '/star')
+                .then(response => response.json())
+                .then(isStarred => {
+                    const starButton = document.getElementById('starButton');
+                    if (isStarred) {
+                        starButton.style.opacity = '1';
+                    } else {
+                        starButton.style.opacity = '0.5';
+                    }
+                })
+                .catch(() => {
+                    // エラー時は無視（スター状態取得は後で実装）
+                });
+        });
+    </script>
+</body>
+</html>

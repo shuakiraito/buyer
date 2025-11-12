@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebPortal.com</title>
+    <link
+      rel="icon"
+      th:href="@{/img/common/favicon.ico}"
+      href="../../static/img/common/favicon.ico"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="#" th:href="@{/}">
+        <img
+          class="header-logo"
+          th:src="@{/img/common/webportal.png}"
+          src="../../static/img/common/webportal.png"
+        />
+        <strong>WebPortal.com</strong>
+      </a>
+      <a href="#" th:href="@{/logout}">
+        <img th:src="@{/img/common/exit.svg}" src="../../static/img/common/exit.svg" />
+        ログアウト
+      </a>
+    </header>
+    <main>
+      <h1 class="page-title">郵便番号検索 結果</h1>
+
+      <div th:if="${zipData.results != null}">
+        <div class="card">
+          <div class="card-content">
+            <table>
+              <thead>
+                <tr>
+                  <th>項目</th>
+                  <th>結果</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>郵便番号</th>
+                  <td th:text="${zipData.results[0].zipcode}">0030806</td>
+                </tr>
+                <tr>
+                  <th>都道府県</th>
+                  <td th:text="${zipData.results[0].address1}">北海道</td>
+                </tr>
+                <tr>
+                  <th>市区町村</th>
+                  <td th:text="${zipData.results[0].address2}">札幌市白石区</td>
+                </tr>
+                <tr>
+                  <th>番地</th>
+                  <td th:text="${zipData.results[0].address3}">菊水6条</td>
+                </tr>
+                <tr>
+                  <th>都道府県カナ</th>
+                  <td th:text="${zipData.results[0].kana1}">ﾎｯｶｲﾄﾞｳ</td>
+                </tr>
+                <tr>
+                  <th>市区町村カナ</th>
+                  <td th:text="${zipData.results[0].kana2}">ｻｯﾎﾟﾛｼｼﾛｲｼｸ</td>
+                </tr>
+                <tr>
+                  <th>番地カナ</th>
+                  <td th:text="${zipData.results[0].kana3}">ｷｸｽｲ6ｼﾞｮｳ</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div th:if="${errorMessage != null}">
+        <p class="error-message" th:text="${errorMessage}">住所情報の取得に失敗しました。</p>
+      </div>
+    </main>
+    <footer>&copy; 2024 WebPortal.com</footer>
+  </body>
+</html>

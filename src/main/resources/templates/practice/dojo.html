@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebPortal.com</title>
+    <link
+      rel="icon"
+      th:href="@{/img/common/favicon.ico}"
+      href="../../static/img/common/favicon.ico"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css" />
+    <link rel="stylesheet" th:href="@{/css/dojo.css}" href="../../static/css/dojo.css" />
+  </head>
+  <body>
+    <header>
+      <a href="#" th:href="@{/}"
+        ><img
+          class="header-logo"
+          th:src="@{/img/common/webportal.png}"
+          src="../../static/img/common/webportal.png"
+        /><strong>WebPortal.com</strong></a
+      >
+      <a href="#" th:href="@{/logout}"
+        ><img th:src="@{/img/common/exit.svg}" src="../../static/img/common/exit.svg" />ログアウト
+      </a>
+    </header>
+    <main>
+      <h1 class="page-title">アルゴリズム道場</h1>
+      <div class="content-box-q">
+        <h2>Level 0</h2>
+        <h4>問題</h4>
+        <p>Eメールアドレスはローカル部とドメインを「@」を繋いだ文字列で表されます。</p>
+        <p>ローカル部を s ,ドメインを t として、文字列がそれぞれ変数に格納されています。</p>
+        <p>以下の構文に沿った文字列を出力してください。</p>
+        <hr />
+        <h4>入力例1</h4>
+        <div class="content-box-e">
+          String local = "jouhou";<br />
+          String domain = "hcs.ac.jp";
+        </div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">jouhou@hcs.ac.jp</div>
+        <hr />
+        <p>
+          <strong>※結果は、標準出力(コンソール)へ出力すること※</strong>
+        </p>
+        <p>
+          <img
+            width="100%"
+            id="level0_img"
+            src="../../static/img/practice/level0.png"
+            th:src="@{/img/practice/level0.png}"
+          />
+        </p>
+        <form method="post" th:action="@{/level0}">
+          <button type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 1</h2>
+        <h4>問題</h4>
+        <p>とある町Aでは、新しくテーマパークができました。</p>
+        <p>とある町Aにはもともと100人の人が住んでいます。</p>
+        <p>A 村では人口が毎月 X 人ずつ増加します。Y 月後の A 村の人口はいくらですか？</p>
+        <h4>入力</h4>
+        <div class="content-box-ex">X Y</div>
+        <ul>
+          <li>1文字目に A 村が毎月増加する人数 X が与えられます。</li>
+          <li>2文字目に何か月後の人口を求めるかを表す Y が与えられます。</li>
+          <li>1文字目と2文字目の間に半角スペースが挿入されます。</li>
+        </ul>
+        <hr />
+        <h4>入力例1</h4>
+        <div class="content-box-e">180 2</div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">460</div>
+        <hr />
+        <h4>入力例2</h4>
+        <div class="content-box-e">300 11</div>
+        <h4>出力例2</h4>
+        <div class="content-box-e">3400</div>
+        <form method="post" th:action="@{/level1}">
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 2</h2>
+        <h4>問題</h4>
+        <p>
+          アルファベットからなる長さ N の文字列 S
+          が与えられます。この文字列の最後の文字を出力してください。
+        </p>
+        <h4>入力</h4>
+        <div class="content-box-ex">S</div>
+        <hr />
+        <h4>入力例1</h4>
+        <div class="content-box-e">Namae</div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">e</div>
+        <form method="post" th:action="@{/level2}">
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 3</h2>
+        <h4>問題</h4>
+        <p>以下のルールで文字変換を行います。</p>
+        <ol>
+          <li>とある文字列から母音を取り除いて子音のみを連結する</li>
+          <li>
+            ここで母音とは "a", "e", "i", "o", "u" の 5 つのアルファベットの小文字( "a", "e", "i",
+            "o", "u" )、大文字( "A", "E", "I", "O", "U"
+            )を指し、子音とはそれ以外のアルファベットを意味する。
+          </li>
+        </ol>
+        <h4>入力例1</h4>
+        <div class="content-box-e">Torvalds</div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">Trvlds</div>
+        <hr />
+        <h4>入力例2</h4>
+        <div class="content-box-e">Hokkaido</div>
+        <h4>出力例2</h4>
+        <div class="content-box-e">Hkkd</div>
+        <hr />
+        <form method="post" th:action="@{/level3}">
+          <label for="level3-input">入力値</label>
+          <input id="level3-input" type="text" name="level3" />
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 4</h2>
+        <h4>問題</h4>
+        <p>以下のルールで○✕ゲームが行われています。</p>
+        <ol>
+          <li>縦 1 マス、横 5 マスのマス目を作る。</li>
+          <li>全てのマスに o または x を書き込む。</li>
+          <li>o が横に連続して 3 つ以上並んでいるなら、 o の勝ちである。</li>
+          <li>そうでなくて、 x が横に連続して 3 つ以上並んでいるなら、 x の勝ちである。</li>
+          <li>このどちらでもない場合、引き分けである。</li>
+        </ol>
+        <p>○✕ゲームの結果を判定してください。</p>
+        <h4>入力例1</h4>
+        <div class="content-box-e">xooox</div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">o</div>
+        <p>o が連続して 3 つ並んでいるので、 o の勝ちです。</p>
+        <hr />
+        <h4>入力例2</h4>
+        <div class="content-box-e">xxxxx</div>
+        <h4>出力例2</h4>
+        <div class="content-box-e">x</div>
+        <p>x が連続して 5 つ並んでいるので、 x の勝ちです。</p>
+        <hr />
+        <h4>入力例3</h4>
+        <div class="content-box-e">xoxxo</div>
+        <h4>出力例3</h4>
+        <div class="content-box-e">draw</div>
+        <p>o も x も 3 つ以上連続して並んでいないため、引き分けです。</p>
+        <hr />
+        <form method="post" th:action="@{/level4}">
+          <label for="level4-input">入力値</label>
+          <input id="level4-input" type="text" name="level4" />
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 5(追加課題)</h2>
+        <h4>問題</h4>
+        <p>気づくとあなたは知らない空間に閉じ込められていました。</p>
+        <p>この空間は縦 H マス横 W マスのグリッドになっています。</p>
+        <p>あなたはこのグリッドの外に出ることで、この空間から脱出しようとしています。</p>
+        <p>
+          ただし、この空間のいくつかのマスには巨大な柱が立っており、あなたはこの柱を通り抜けることが出来ません。
+        </p>
+        <p>あなたの仕事は、柱にぶつかることなくグリッドの外に出ることが可能か判定することです。</p>
+        <p>
+          例えば、下の左側の図では、矢印のように移動することによってグリッドの外に出ることが出来ます。
+        </p>
+        <p>
+          <strong>※脱出が可能な場合は、行き止まりは存在しません。※</strong>
+        </p>
+        <p>
+          一方で、下の右側の図では、周りが柱で囲まれているため、グリッドの外に出ることが出来ません。
+          <img id="level5_img" th:src="@{/img/practice/level5.png}" />
+        </p>
+        <h4>入力</h4>
+        <div class="content-box-ex">
+          H W<br />
+          s_1<br />
+          s_2<br />
+          ...<br />
+          s_H<br />
+        </div>
+        <ul>
+          <li>必ず「3 ≦ H, W ≦ 10」を満たします。</li>
+          <li>Hは必ず奇数となります。</li>
+          <li>
+            1 行目にそれぞれグリッドの縦の長さと横の長さを表す整数 H, W
+            がこの順で半角スペース区切りで与えられます。
+          </li>
+          <li>
+            続く H 行のうちの i 行目 (1 ≦ i ≦ H) には半角記号 "#", "." または半角文字 "S"
+            からなる長さ W の文字列 s_i が与えられます。s_i の j 番目 (1 ≦ j ≦ W) の文字は i 行 j
+            列のグリッドの状態を表し、"#" はその場所が柱であることを、また "."
+            はその場所が自由に行き来できることを、また "S"
+            はその場所に最初にあなたがいることを表します ("S" の場所は自由に行き来出来ます)
+          </li>
+        </ul>
+        <hr />
+        <h4>入力例1</h4>
+        <div class="content-box-e">
+          <code>
+            7 6<br />
+            ######<br />
+            #....#<br />
+            #.##.#<br />
+            #.#S.#<br />
+            #.####<br />
+            #.....<br />
+            ######<br />
+          </code>
+        </div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">YES</div>
+        <hr />
+        <h4>入力例2</h4>
+        <div class="content-box-e">
+          <code>
+            7 6<br />
+            ......<br />
+            ......<br />
+            .####.<br />
+            #..S.#<br />
+            #....#<br />
+            .####.<br />
+            ......<br />
+          </code>
+        </div>
+        <h4>出力例2</h4>
+        <div class="content-box-e">NO</div>
+        <hr />
+        <h4>入力例3</h4>
+        <div class="content-box-e">
+          <code>
+            7 6<br />
+            ######<br />
+            .....#<br />
+            ####.#<br />
+            #.S#.#<br />
+            #.##.#<br />
+            #....#<br />
+            ######<br />
+          </code>
+        </div>
+        <h4>出力例3</h4>
+        <div class="content-box-e">YES</div>
+        <hr />
+        <form method="post" th:action="@{/level5}">
+          <label for="level5-input">入力値</label><br />
+          <textarea id="level5-input" name="level5" rows="8">
+7 6&#13;&#10;######&#13;&#10;#....#&#13;&#10;#.##.#&#13;&#10;#.#S.#&#13;&#10;#.####&#13;&#10;#.....&#13;&#10;######</textarea
+          ><br />
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+      <div class="content-box-q">
+        <h2>Level 6(追加課題)</h2>
+        <h4>問題</h4>
+        <p>Level5の続きです。</p>
+        <p>
+          <strong>※脱出が可能な場合でも、行き止まりが存在します。※</strong>
+        </p>
+        <p>
+          例えば、下の左側の図では、矢印のように移動することによってグリッドの外に出ることが出来ます。
+        </p>
+        <p>
+          一方で、下の右側の図では、周りが柱で囲まれているため、グリッドの外に出ることが出来ません。
+          <img id="level6_img" th:src="@{/img/practice/level6.png}" />
+        </p>
+        <h4>入力</h4>
+        <div class="content-box-ex">
+          H W<br />
+          s_1<br />
+          s_2<br />
+          ...<br />
+          s_H<br />
+        </div>
+        <p><strong>下記以外はLevel5から変更なし</strong></p>
+        <ul>
+          <li>必ず「3 ≦ H, W ≦ 100」を満たします。</li>
+        </ul>
+        <hr />
+        <h4>入力例1</h4>
+        <div class="content-box-e">
+          <code>
+            13 13<br />
+            #############<br />
+            #.........#.#<br />
+            #.#######.#.#<br />
+            #.#.#...#...#<br />
+            #.#.#.#.###.#<br />
+            #.#.#.#.#S..#<br />
+            #.#.#.#.#####<br />
+            #.#...#.....#<br />
+            #.#########.#<br />
+            #.#.....#...#<br />
+            #.#.#.###.###<br />
+            #...#........<br />
+            #############<br />
+          </code>
+        </div>
+        <h4>出力例1</h4>
+        <div class="content-box-e">YES</div>
+        <hr />
+        <h4>入力例2</h4>
+        <div class="content-box-e">
+          <code>
+            7 9<br />
+            #########<br />
+            #.......#<br />
+            #.#####.#<br />
+            #.#S..#.#<br />
+            #.###.#.#<br />
+            #...#...#<br />
+            #########<br />
+          </code>
+        </div>
+        <h4>出力例2</h4>
+        <div class="content-box-e">NO</div>
+        <hr />
+        <h4>入力例3</h4>
+        <div class="content-box-e">
+          <code>
+            31 31<br />
+            ###############################<br />
+            #...#.....#S....#.....#.......#<br />
+            #.#.###.#.###.###.#.#.###.###.#<br />
+            #.#.#...#...#.#...#.#...#...#.#<br />
+            #.###.#####.#.#.###.###.#.#.#.#<br />
+            #...#.....#.#.#.#.#.#.#.#.#.#.#<br />
+            ###.#####.#.#.#.#.#.#.#.#.#.#.#<br />
+            #...#...#.#.#.....#.#.#.#.#.#.#<br />
+            #.###.#.#.#.#######.#.#.#.#.#.#<br />
+            #.#...#...#.........#.#.#.#.#.#<br />
+            #.###.###############.#.###.###<br />
+            #...#.....#...........#...#...#<br />
+            ###.###.#.#.#.#######.###.#.#.#<br />
+            #.#...#.#.#.#.....#...#.#.#.#.#<br />
+            #.###.###.#######.###.#.#.#.#.#<br />
+            #...#.....#.....#...#...#.#.#.#<br />
+            #.#########.###.###.#.###.###.#<br />
+            #.........#...#.....#.#...#...#<br />
+            #.###.#####.#.#########.###.###<br />
+            #...#.#.....#.#.........#.....#<br />
+            #####.#.#####.#.#########.###.#<br />
+            #.....#.....#.#...#.......#...#<br />
+            #.#########.#.###.#.#######.#.#<br />
+            #.........#.#...#.#...#.....#.#<br />
+            #.#####.###.###.#.#.###.#####.#<br />
+            #.....#...#...#.#.#.#...#...#.#<br />
+            #####.###.###.#.#.#.#.###.###.#<br />
+            #...#.#.#.#...#...#.#.#.....#.#<br />
+            #.#.#.#.#.#.#########.#.###.#.#<br />
+            ..#.....#.............#...#...#<br />
+            ###############################<br />
+          </code>
+        </div>
+        <h4>出力例3</h4>
+        <div class="content-box-e">YES</div>
+        <hr />
+        <form method="post" th:action="@{/level6}">
+          <label for="level6-input">入力値</label><br />
+          <textarea id="level6-input" name="level6" rows="15">
+13 13&#13;&#10;#############&#13;&#10;#.........#.#&#13;&#10;#.#######.#.#&#13;&#10;#.#.#...#...#&#13;&#10;#.#.#.#.###.#&#13;&#10;#.#.#.#.#S..#&#13;&#10;#.#.#.#.#####&#13;&#10;#.#...#.....#&#13;&#10;#.#########.#&#13;&#10;#.#.....#...#&#13;&#10;#.#.#.###.###&#13;&#10;#...#........&#13;&#10;#############</textarea
+          ><br />
+          <button class="mt-10" type="submit">実行</button>
+        </form>
+      </div>
+    </main>
+    <footer>&copy; 2024 WebPortal.com</footer>
+  </body>
+</html>

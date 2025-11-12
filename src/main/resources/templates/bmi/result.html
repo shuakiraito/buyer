@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebPortal.com</title>
+    <link
+      rel="icon"
+      th:href="@{/img/common/favicon.ico}"
+      href="../../static/img/common/favicon.ico"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../../static/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="#" th:href="@{/}"
+        ><img
+          class="header-logo"
+          th:src="@{/img/common/webportal.png}"
+          src="../../static/img/common/webportal.png"
+        /><strong>WebPortal.com</strong></a
+      >
+      <a href="#" th:href="@{/logout}"
+        ><img th:src="@{/img/common/exit.svg}" src="../../static/img/common/exit.svg" />ログアウト
+      </a>
+    </header>
+    <main>
+      <h1 class="page-title">BMI 結果</h1>
+      <div class="card">
+        <div class="card-content text-center">
+          <img src="https://placehold.jp/200x200.png" th:src="@{${bmi.path}}" />
+          <p>
+            BMI値：
+            <span class="fw-bold" th:text="${bmi.ans}">結果</span>
+          </p>
+          <span th:text="${bmi.comment}">コメント</span>
+        </div>
+      </div>
+      <!-- .card -->
+    </main>
+    <footer>&copy; 2024 WebPortal.com</footer>
+  </body>
+</html>

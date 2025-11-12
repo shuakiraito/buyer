@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>メッセージ検索 - YAMABIKO</title>
+    <link rel="icon" th:href="@{/img/common/favicon.ico}" href="../static/img/common/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css" />
+</head>
+<body class="search-body">
+    <header class="search-header">
+        <a class="search-logo" th:href="@{/}">
+            <img
+                class="search-logo-image"
+                th:src="@{/img/common/yamabiko-logo.png}"
+                src="../static/img/common/yamabiko-logo.png"
+                alt="YAMABIKO"
+            />
+            <span class="search-logo-text">YAMABIKO</span>
+        </a>
+        <div class="search-header-actions">
+            <a class="search-header-link" th:href="@{/chat}">チャットに戻る</a>
+            <a class="search-header-link" th:href="@{/logout}">
+                <img th:src="@{/img/common/exit.svg}" src="../static/img/common/exit.svg" alt="" />ログアウト
+            </a>
+        </div>
+    </header>
+
+    <main class="search-main">
+        <section class="search-panel">
+            <form method="get" th:action="@{/chat/search}" class="search-form">
+                <div class="search-bar">
+                    <span class="search-icon"></span>
+                    <input
+                        class="search-input"
+                        id="keyword"
+                        type="text"
+                        name="keyword"
+                        th:value="${keyword}"
+                        placeholder="メッセージをキーワードで検索"
+                        autocomplete="off"
+                    />
+                    <button class="search-submit" type="submit">検索</button>
+                </div>
+
+                <div class="search-filters">
+                    <div class="filter-field">
+                        <label for="channelId">チャンネル</label>
+                        <select id="channelId" name="channelId">
+                            <option value="" th:selected="${selectedChannelId == null}">すべて</option>
+                            <option
+                                th:each="channel : ${channels}"
+                                th:value="${channel.id}"
+                                th:text="${channel.channelName}"
+                                th:selected="${selectedChannelId != null and selectedChannelId == channel.id}"
+                            ></option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label for="userId">投稿者</label>
+                        <select id="userId" name="userId">
+                            <option value="" th:selected="${selectedUserId == null or selectedUserId.isEmpty()}">すべて</option>
+                            <option
+                                th:each="user : ${users}"
+                                th:value="${user.userId()}"
+                                th:text="${user.userName() != null ? user.userName() + ' (' + user.userId() + ')' : user.userId()}"
+                                th:selected="${selectedUserId != null and selectedUserId.equals(user.userId())}"
+                            ></option>
+                        </select>
+                    </div>
+                    <div class="filter-field">
+                        <label for="dateFrom">投稿日（開始）</label>
+                        <input id="dateFrom" type="date" name="dateFrom" th:value="${dateFrom}" />
+                    </div>
+                    <div class="filter-field">
+                        <label for="dateTo">投稿日（終了）</label>
+                        <input id="dateTo" type="date" name="dateTo" th:value="${dateTo}" />
+                    </div>
+                    <div class="filter-field">
+                        <label for="importance">重要度</label>
+                        <select id="importance" name="importance">
+                            <option value="" th:selected="${importance == null or importance.isEmpty()}">すべて</option>
+                            <option value="NORMAL" th:selected="${importance != null and importance.equalsIgnoreCase('NORMAL')}">通常</option>
+                            <option value="IMPORTANT" th:selected="${importance != null and importance.equalsIgnoreCase('IMPORTANT')}">重要</option>
+                            <option value="URGENT" th:selected="${importance != null and importance.equalsIgnoreCase('URGENT')}">至急</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <div
+                class="search-active-keywords"
+                th:if="${keyword != null and !keyword.isBlank()}"
+            >
+                <span class="search-active-label">検索ワード</span>
+                <span class="search-active-chip" th:text="${keyword}">キーワード</span>
+            </div>
+        </section>
+
+        <section class="search-results" th:if="${results != null}">
+            <p class="search-summary">
+                <span th:text="${results.size()}">0</span> 件ヒットしました
+            </p>
+
+            <div class="search-empty" th:if="${#lists.isEmpty(results)}">
+                条件に一致するメッセージは見つかりませんでした。
+            </div>
+
+            <ul class="search-result-list" th:if="${!#lists.isEmpty(results)}">
+                <li class="search-result-card" th:each="result : ${results}">
+                    <div class="search-result-meta">
+                        <span class="search-result-channel"
+                            th:text="${'#' + (channelNameMap[result.channelId] != null ? channelNameMap[result.channelId] : 'チャンネル ' + result.channelId)}"></span>
+                        <span class="search-result-separator">•</span>
+                        <span class="search-result-author" th:text="${result.userName}">ユーザー名</span>
+                        <span class="search-result-separator">•</span>
+                        <span class="search-result-time" th:text="${#temporals.format(result.createdAt, 'yyyy/MM/dd HH:mm')}">時刻</span>
+                        <span class="search-result-separator" th:if="${result.importance != null}">•</span>
+                        <span class="search-result-importance"
+                            th:if="${result.importance != null}"
+                            th:classappend="${result.importance.equalsIgnoreCase('URGENT') ? ' importance-urgent' : (result.importance.equalsIgnoreCase('IMPORTANT') ? ' importance-important' : ' importance-normal')}"
+                            th:text="${result.importance.equalsIgnoreCase('URGENT') ? '至急' : (result.importance.equalsIgnoreCase('IMPORTANT') ? '重要' : '通常')}">
+                            重要度
+                        </span>
+                    </div>
+                    <div class="search-result-text" th:text="${result.messageText}">メッセージ本文</div>
+                    <a class="search-result-link" th:href="@{/chat/channel/{id}(id=${result.channelId})}">
+                        チャンネルを開く
+                    </a>
+                </li>
+            </ul>
+        </section>
+    </main>
+
+    <footer class="search-footer">&copy; 2024 YAMABIKO</footer>
+</body>
+</html>
+
