@@ -316,6 +316,108 @@ body.chat-page footer {
   padding: 20px 16px;
 }
 
+/* DM 空状態 */
+.dm-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(53, 13, 54, 0.92), rgba(63, 14, 64, 0.75));
+  padding: 48px 16px;
+}
+
+.dm-empty-state-card {
+  width: 100%;
+  max-width: 640px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  padding: 40px 36px;
+  box-shadow: 0 35px 65px rgba(26, 6, 27, 0.35);
+  text-align: center;
+  color: var(--slack-input-text);
+}
+
+.dm-empty-state-title {
+  margin: 0 0 12px 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.dm-empty-state-description {
+  margin: 0 0 28px 0;
+  color: var(--slack-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.dm-user-section {
+  text-align: left;
+  margin-top: 32px;
+}
+
+.dm-user-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--slack-input-text);
+}
+
+.dm-user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dm-user-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background-color: rgba(63, 14, 64, 0.1);
+  border: 1px solid rgba(63, 14, 64, 0.16);
+  text-decoration: none;
+  color: var(--slack-input-text);
+  transition: transform 0.16s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.dm-user-link:hover {
+  transform: translateY(-2px);
+  background-color: rgba(63, 14, 64, 0.18);
+  box-shadow: 0 16px 28px rgba(31, 7, 32, 0.22);
+}
+
+.dm-user-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dm-user-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dm-user-meta {
+  font-size: 12px;
+  color: var(--slack-text-muted);
+}
+
+.dm-user-chevron {
+  font-size: 14px;
+  color: var(--slack-text-muted);
+}
+
+.dm-empty-feedback {
+  margin-top: 36px;
+  font-size: 14px;
+  color: var(--slack-text-muted);
+  text-align: center;
+}
+
 .slack-message {
   margin-bottom: 16px;
   padding: 8px 0;

@@ -42,34 +42,46 @@
                 </div>
             </div>
             
-            <div class="slack-messages" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                <div style="text-align: center; color: var(--slack-text-muted);">
-                    <h2 style="color: var(--slack-text-primary); margin-bottom: 16px;">ダイレクトメッセージ</h2>
-                    <p style="margin-bottom: 24px;">会話を開始するユーザーを選択してください。</p>
-                    
-                    <div th:if="${partners != null && !partners.isEmpty()}" style="margin-top: 32px; max-width: 600px;">
-                        <h3 style="color: var(--slack-text-primary); margin-bottom: 16px;">最近の会話</h3>
-                        <ul style="list-style: none; padding: 0; margin: 0;">
-                            <li th:each="partner : ${partners}" style="margin-bottom: 8px;">
-                                <a th:href="@{/chat/dm/{id}(id=${partner})}" 
-                                   style="display: block; padding: 12px; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--slack-text-primary); text-decoration: none;">
-                                    <span th:text="${partner}">ユーザーID</span>
+            <div class="slack-messages dm-empty-state">
+                <div class="dm-empty-state-card">
+                    <h2 class="dm-empty-state-title">ダイレクトメッセージ</h2>
+                    <p class="dm-empty-state-description">
+                        会話を開始するユーザーを選択してください。メッセージはリアルタイムで同期されます。
+                    </p>
+
+                    <div th:if="${partners != null && !partners.isEmpty()}" class="dm-user-section">
+                        <h3>最近の会話</h3>
+                        <ul class="dm-user-list">
+                            <li th:each="partner : ${partners}">
+                                <a th:href="@{/chat/dm/{id}(id=${partner})}" class="dm-user-link">
+                                    <div class="dm-user-primary">
+                                        <span class="dm-user-name" th:text="${partner}">ユーザーID</span>
+                                        <span class="dm-user-meta">最近アクセスした会話</span>
+                                    </div>
+                                    <span class="dm-user-chevron">›</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    
-                    <div th:if="${allUsers != null && !allUsers.isEmpty()}" style="margin-top: 32px; max-width: 600px;">
-                        <h3 style="color: var(--slack-text-primary); margin-bottom: 16px;">ユーザーを選択して会話を開始</h3>
-                        <ul style="list-style: none; padding: 0; margin: 0;">
-                            <li th:each="user : ${allUsers}" style="margin-bottom: 8px;">
-                                <a th:href="@{/chat/dm/{id}(id=${user.userId()})}" 
-                                   style="display: block; padding: 12px; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--slack-text-primary); text-decoration: none;">
-                                    <span th:text="${user.userName() != null ? user.userName() : user.userId()}">ユーザー名</span>
-                                    <span th:if="${user.role() == 'ROLE_TEACHER'}" style="font-size: 12px; color: var(--slack-text-muted); margin-left: 8px;">(講師)</span>
+
+                    <div th:if="${allUsers != null && !allUsers.isEmpty()}" class="dm-user-section">
+                        <h3>ユーザーを選択して会話を開始</h3>
+                        <ul class="dm-user-list">
+                            <li th:each="user : ${allUsers}">
+                                <a th:href="@{/chat/dm/{id}(id=${user.userId()})}" class="dm-user-link">
+                                    <div class="dm-user-primary">
+                                        <span class="dm-user-name" th:text="${user.userName() != null ? user.userName() : user.userId()}">ユーザー名</span>
+                                        <span th:if="${user.role() == 'ROLE_TEACHER'}" class="dm-user-meta">講師</span>
+                                        <span th:if="${user.role() == 'ROLE_ADMIN'}" class="dm-user-meta">管理者</span>
+                                    </div>
+                                    <span class="dm-user-chevron">›</span>
                                 </a>
                             </li>
                         </ul>
+                    </div>
+
+                    <div th:if="${allUsers == null || allUsers.isEmpty()}" class="dm-empty-feedback">
+                        他のユーザーはまだ登録されていません。新規ユーザーが登録されるとここに表示されます。
                     </div>
                 </div>
             </div>
