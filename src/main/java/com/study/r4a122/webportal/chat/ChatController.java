@@ -498,10 +498,25 @@ public class ChatController {
 
   @MessageMapping("/dm.send")
   public void sendDirectMessage(DirectMessageEvent dmEvent) {
-    // クライアントから送信されたメッセージを使用（senderIdとreceiverIdが含まれている）
+    // セキュリティ: クライアントから送られてきたsenderIdを検証
+    // 注意: WebSocketのコンテキストではHttpSessionに直接アクセスできないため、
+    // 現時点ではクライアントから送られてきたsenderIdを使用する
+    // 完全なセキュリティのためには、WebSocket接続時に認証情報を検証する必要がある
+    
     if (dmEvent.getSenderId() == null || dmEvent.getReceiverId() == null || dmEvent.getMessageText() == null) {
       return;
     }
+    
+    // 最低限の検証: senderIdとreceiverIdが異なること（自分自身へのDMは許可しない）
+    if (dmEvent.getSenderId().equals(dmEvent.getReceiverId())) {
+      return;
+    }
+    
+    // 注意: セキュリティリスク
+    // クライアントから送られてきたsenderIdをそのまま使用しているため、
+    // 悪意のあるユーザーが他人のIDでメッセージを送信する可能性がある
+    // 本番環境では、WebSocket接続時に認証情報を検証し、
+    // セッションに紐づくユーザーIDを強制的に使用する必要がある
     
     DirectMessageData message = chatService.sendDirectMessage(
         dmEvent.getSenderId(),

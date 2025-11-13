@@ -107,10 +107,18 @@
         const stompClient = Stomp.over(socket);
 
         stompClient.connect({}, function(frame) {
+            console.log('STOMP Connected: ' + frame);
+            
+            // 接続が成功したので、ここで購読(subscribe)を開始
             stompClient.subscribe(dmTopic, function(message) {
                 const data = JSON.parse(message.body);
                 handleIncomingDm(data);
             });
+            
+            console.log('Subscribed to: ' + dmTopic);
+        }, function(error) {
+            console.error('STOMP connection error: ', error);
+            // 接続エラー時の処理（必要に応じて再接続ロジックを追加）
         });
 
         function sendMessage() {
