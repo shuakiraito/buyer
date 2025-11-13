@@ -1,6 +1,7 @@
 package com.study.r4a122.webportal.user;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +13,12 @@ public class RegisterController {
 
   @Autowired
   private RegisterService registerService;
+  
+  @Autowired
+  private SimpMessagingTemplate messagingTemplate;
+  
+  @Autowired
+  private UserRepository userRepository;
 
   /**
    * 新規登録画面を表示します。
@@ -47,6 +54,26 @@ public class RegisterController {
       // エラーがある場合は新規登録画面を再表示
       model.addAttribute("errorMessage", errorMessage);
       return "register";
+    }
+    
+    // 登録成功時、新規ユーザー情報を取得してWebSocketでブロードキャスト
+    UserData newUser = userRepository.findByUserId(userId);
+    if (newUser != null) {
+      // パスワード情報を除外した安全なユーザー情報を作成
+      // UserDataはrecordなので、全フィールドが必要だが、パスワードは"****"でマスク
+      UserData safeUserData = new UserData(
+          newUser.userId(),
+          "****", // パスワードは送信しない（マスク）
+          newUser.userName(),
+          newUser.role(),
+          newUser.enabled(),
+          newUser.locked(),
+          newUser.failedAttempts(),
+          newUser.lockedAt(),
+          newUser.lastLoginAt()
+      );
+      // 全クライアントに新規ユーザー登録を通知
+      messagingTemplate.convertAndSend("/topic/users.activity", safeUserData);
     }
     
     // 成功時はログイン画面へリダイレクト（成功メッセージ付き）

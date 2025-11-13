@@ -12,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import java.security.Principal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -497,37 +498,40 @@ public class ChatController {
   }
 
   @MessageMapping("/dm.send")
-  public void sendDirectMessage(DirectMessageEvent dmEvent) {
-    // セキュリティ: クライアントから送られてきたsenderIdを検証
-    // 注意: WebSocketのコンテキストではHttpSessionに直接アクセスできないため、
-    // 現時点ではクライアントから送られてきたsenderIdを使用する
-    // 完全なセキュリティのためには、WebSocket接続時に認証情報を検証する必要がある
+  public void sendDirectMessage(DirectMessageEvent dmEvent, Principal principal) {
+    // セキュリティ: Principalがnullの場合は認証エラーとして処理
+    if (principal == null) {
+      System.err.println("認証されていないユーザーからのDM送信要求を拒否しました。");
+      return;
+    }
     
-    if (dmEvent.getSenderId() == null || dmEvent.getReceiverId() == null || dmEvent.getMessageText() == null) {
+    // principal.getName()には、現在ログインしているユーザーのIDが自動的に入る
+    String actualSenderId = principal.getName();
+    
+    // 入力値の検証
+    if (dmEvent.getReceiverId() == null || dmEvent.getMessageText() == null) {
       return;
     }
     
     // 最低限の検証: senderIdとreceiverIdが異なること（自分自身へのDMは許可しない）
-    if (dmEvent.getSenderId().equals(dmEvent.getReceiverId())) {
+    if (actualSenderId.equals(dmEvent.getReceiverId())) {
       return;
     }
     
-    // 注意: セキュリティリスク
-    // クライアントから送られてきたsenderIdをそのまま使用しているため、
-    // 悪意のあるユーザーが他人のIDでメッセージを送信する可能性がある
-    // 本番環境では、WebSocket接続時に認証情報を検証し、
-    // セッションに紐づくユーザーIDを強制的に使用する必要がある
-    
+    // ★★★ここが最重要★★★
+    // クライアントが何を申告してきても（dmEvent.getSenderId()）、
+    // それを無視し、認証済みのID (actualSenderId) を強制的に使う
     DirectMessageData message = chatService.sendDirectMessage(
-        dmEvent.getSenderId(),
+        actualSenderId, // ← これで「なりすまし」が不可能になる
         dmEvent.getReceiverId(),
         dmEvent.getMessageText());
-    chatService.logActivity(dmEvent.getSenderId(), "DM_SENT", "ダイレクトメッセージを送信しました", null, "DM");
+    chatService.logActivity(actualSenderId, "DM_SENT", "ダイレクトメッセージを送信しました", null, "DM");
 
     if (message != null) {
       DirectMessageEvent event = buildDirectMessageEvent(message, "NEW");
       if (event != null) {
-        messagingTemplate.convertAndSend(dmTopic(dmEvent.getSenderId(), dmEvent.getReceiverId()), event);
+        // dmTopicの計算も、信頼できるactualSenderIdを使う
+        messagingTemplate.convertAndSend(dmTopic(actualSenderId, dmEvent.getReceiverId()), event);
       }
     }
   }

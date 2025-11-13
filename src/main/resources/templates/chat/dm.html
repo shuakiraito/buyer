@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" th:href="@{/css/style.css}" href="../static/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 </head>
 <body class="chat-page">
     <div class="slack-container">
@@ -91,7 +93,101 @@
     <script th:inline="javascript">
         const userId = /*[[${userId}]]*/ '';
         
-        // ユーザー一覧を定期的に更新（30秒ごと）
+        // WebSocket接続を確立
+        const socket = new SockJS('/ws');
+        const stompClient = Stomp.over(socket);
+        
+        // WebSocket接続とユーザーアクティビティの購読
+        stompClient.connect({}, function(frame) {
+            console.log('STOMP Connected: ' + frame);
+            
+            // 新規ユーザー登録イベントを購読
+            stompClient.subscribe('/topic/users.activity', function(message) {
+                const newUser = JSON.parse(message.body);
+                handleNewUserRegistration(newUser);
+            });
+            
+            console.log('Subscribed to: /topic/users.activity');
+        }, function(error) {
+            console.error('STOMP connection error: ', error);
+        });
+        
+        // 新規ユーザー登録イベントの処理
+        function handleNewUserRegistration(newUser) {
+            if (!newUser || !newUser.userId) {
+                return;
+            }
+            
+            // 現在のユーザー自身は除外
+            if (newUser.userId === userId) {
+                return;
+            }
+            
+            // 既にリストに存在するかチェック
+            const existingLink = document.querySelector('a[href="/chat/dm/' + newUser.userId + '"]');
+            if (existingLink) {
+                // 既に存在する場合は更新しない
+                return;
+            }
+            
+            // 空のフィードバックメッセージを非表示
+            const emptyFeedback = document.querySelector('.dm-empty-feedback');
+            if (emptyFeedback) {
+                emptyFeedback.style.display = 'none';
+            }
+            
+            // ユーザーリストのセクションを取得または作成
+            let userSection = document.querySelector('.dm-user-section:last-of-type');
+            if (!userSection) {
+                // セクションが存在しない場合は作成
+                const emptyStateCard = document.querySelector('.dm-empty-state-card');
+                if (emptyStateCard) {
+                    userSection = document.createElement('div');
+                    userSection.className = 'dm-user-section';
+                    userSection.innerHTML = '<h3>ユーザーを選択して会話を開始</h3><ul class="dm-user-list"></ul>';
+                    emptyStateCard.appendChild(userSection);
+                } else {
+                    return; // カードが見つからない場合は終了
+                }
+            }
+            
+            // ユーザーリストを取得
+            const userList = userSection.querySelector('.dm-user-list');
+            if (!userList) {
+                return;
+            }
+            
+            // 新しいユーザーをリストに追加
+            const userName = newUser.userName || newUser.userId;
+            const role = newUser.role;
+            let roleBadge = '';
+            if (role === 'ROLE_TEACHER') {
+                roleBadge = '<span class="dm-user-meta">講師</span>';
+            } else if (role === 'ROLE_ADMIN') {
+                roleBadge = '<span class="dm-user-meta">管理者</span>';
+            }
+            
+            const newUserItem = document.createElement('li');
+            newUserItem.innerHTML = 
+                '<a href="/chat/dm/' + newUser.userId + '" class="dm-user-link">' +
+                '<div class="dm-user-primary">' +
+                '<span class="dm-user-name">' + escapeHtml(userName) + '</span>' +
+                roleBadge +
+                '</div>' +
+                '<span class="dm-user-chevron">›</span>' +
+                '</a>';
+            
+            userList.appendChild(newUserItem);
+            
+            // アニメーション効果（オプション）
+            newUserItem.style.opacity = '0';
+            setTimeout(() => {
+                newUserItem.style.transition = 'opacity 0.3s';
+                newUserItem.style.opacity = '1';
+            }, 10);
+        }
+        
+        // ユーザー一覧を定期的に更新（30秒ごと）- フォールバックとして残す
         function refreshUserList() {
             fetch('/chat/users')
                 .then(response => response.json())
