@@ -1061,14 +1061,14 @@ body.chat-page footer {
 
 /* チャンネル作成フォーム */
 .slack-create-channel {
-  padding: 16px;
+  padding: 8px 12px;
   border-top: 1px solid var(--slack-border);
 }
 
 .slack-create-channel-form {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
-  padding: 12px;
+  padding: 8px;
 }
 
 .slack-create-channel-form input,
@@ -1077,22 +1077,23 @@ body.chat-page footer {
   background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--slack-border);
   border-radius: 4px;
-  padding: 8px;
+  padding: 6px 8px;
   color: var(--slack-text-primary);
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: 13px;
+  margin-bottom: 6px;
 }
 
 .channel-create-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .channel-create-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--slack-text-secondary);
+  margin-bottom: 2px;
 }
 
 .channel-create-toggle {
@@ -1136,16 +1137,19 @@ body.chat-page footer {
   color: var(--slack-text-muted);
 }
 
-.slack-create-channel-form button {
+.slack-create-channel-form button[type="submit"] {
   background-color: var(--slack-button-primary);
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 6px 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  width: 100%;
+}
+
+.slack-add-channel-btn:hover {
+  color: var(--slack-text-primary);
 }
 
 .slack-create-channel-form button:hover {

@@ -45,16 +45,24 @@
                                 <span th:text="${ch.channelName}">チャンネル名</span>
                             </a>
                         </li>
+                        <li class="slack-channel-item" style="padding: 4px 8px;">
+                            <button type="button" id="addChannelButton" class="slack-add-channel-btn" style="background: none; border: none; color: var(--slack-text-secondary); cursor: pointer; font-size: 14px; padding: 4px 0; width: 100%; text-align: left;">
+                                <span style="margin-right: 4px;">+</span>チャンネルを追加する
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
             
-            <div class="slack-create-channel">
+            <div class="slack-create-channel" id="createChannelForm" style="display: none;">
                 <div class="slack-create-channel-form">
                     <form method="post" th:action="@{/chat/channel/create}">
                         <input type="text" name="channelName" placeholder="チャンネル名" required />
                         <textarea name="description" placeholder="説明（任意）" rows="2"></textarea>
-                        <button type="submit">チャンネルを作成</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button type="submit" style="flex: 1;">作成</button>
+                            <button type="button" id="cancelChannelButton" style="flex: 1; background-color: var(--slack-border); color: var(--slack-text-primary); border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer;">キャンセル</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -174,14 +182,15 @@
         stompClient.connect({}, function(frame) {
             console.log('Connected: ' + frame);
             
-            stompClient.subscribe('/topic/messages', function(message) {
+            const channelTopic = '/topic/channel.' + channelId;
+            const threadTopic = '/topic/channel.' + channelId + '.threads';
+
+            stompClient.subscribe(channelTopic, function(message) {
                 const data = JSON.parse(message.body);
-                if (data.channelId === channelId) {
-                    handleIncomingMessage(data);
-                }
+                handleIncomingMessage(data);
             });
 
-            stompClient.subscribe('/topic/threads', function(message) {
+            stompClient.subscribe(threadTopic, function(message) {
                 const data = JSON.parse(message.body);
                 handleThreadEvent(data);
             });
@@ -900,6 +909,33 @@
             channelList.style.display = isHidden ? 'block' : 'none';
             this.textContent = isHidden ? '▼ チャンネル' : '▶ チャンネル';
         });
+        
+        // チャンネル追加ボタンのクリック処理
+        const addChannelButton = document.getElementById('addChannelButton');
+        if (addChannelButton) {
+            addChannelButton.addEventListener('click', function() {
+                const form = document.getElementById('createChannelForm');
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                if (form.style.display === 'block') {
+                    const input = form.querySelector('input[name="channelName"]');
+                    if (input) {
+                        input.focus();
+                    }
+                }
+            });
+        }
+        
+        // キャンセルボタンのクリック処理
+        const cancelChannelButton = document.getElementById('cancelChannelButton');
+        if (cancelChannelButton) {
+            cancelChannelButton.addEventListener('click', function() {
+                document.getElementById('createChannelForm').style.display = 'none';
+                const form = document.querySelector('.slack-create-channel-form form');
+                if (form) {
+                    form.reset();
+                }
+            });
+        }
 
         // チャンネルスター機能
         document.getElementById('starButton').addEventListener('click', function() {

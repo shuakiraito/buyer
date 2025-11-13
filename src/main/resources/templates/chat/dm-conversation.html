@@ -119,24 +119,16 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('receiverId', partnerId);
-            formData.append('messageText', messageText);
-
-            fetch('/chat/dm/send', {
-                method: 'POST',
-                body: formData
-            }).then(response => {
-                if (!response.ok) {
-                    throw new Error('送信に失敗しました');
-                }
-                return response.json();
-            }).then(() => {
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
-            }).catch(err => {
-                console.error(err);
-            });
+            // WebSocket経由で送信
+            const dmMessage = {
+                senderId: userId,
+                receiverId: partnerId,
+                messageText: messageText
+            };
+            
+            stompClient.send("/app/dm.send", {}, JSON.stringify(dmMessage));
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
         }
 
         function handleIncomingDm(data) {

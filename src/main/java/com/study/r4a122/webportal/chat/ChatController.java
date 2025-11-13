@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -169,7 +168,7 @@ public class ChatController {
     MessageData updatedMessage = chatService.getMessageById(messageId);
     if (updatedMessage != null) {
       ChatMessage event = buildChatMessage(updatedMessage, "UPDATE");
-      messagingTemplate.convertAndSend("/topic/messages", event);
+      messagingTemplate.convertAndSend(channelTopic(updatedMessage.channelId()), event);
     }
     return ResponseEntity.ok("Updated");
   }
@@ -198,7 +197,7 @@ public class ChatController {
     if (event != null) {
       event.setDeleted(true);
       event.setMessageText(null);
-      messagingTemplate.convertAndSend("/topic/messages", event);
+      messagingTemplate.convertAndSend(channelTopic(targetMessage.channelId()), event);
     }
     return ResponseEntity.ok("Deleted");
   }
@@ -220,7 +219,7 @@ public class ChatController {
 
     ThreadMessage event = buildThreadMessage(thread, "NEW");
     if (event != null) {
-      messagingTemplate.convertAndSend("/topic/threads", event);
+      messagingTemplate.convertAndSend(threadTopic(event.getChannelId()), event);
     }
     return event != null ? ResponseEntity.ok(event) : ResponseEntity.status(500).build();
   }
@@ -256,7 +255,7 @@ public class ChatController {
     if (updatedThread != null) {
       ThreadMessage event = buildThreadMessage(updatedThread, "UPDATE");
       if (event != null) {
-        messagingTemplate.convertAndSend("/topic/threads", event);
+        messagingTemplate.convertAndSend(threadTopic(event.getChannelId()), event);
       }
     }
     return ResponseEntity.ok("Updated");
@@ -285,7 +284,7 @@ public class ChatController {
     ThreadMessage event = buildThreadMessage(targetThread, "DELETE");
     if (event != null) {
       event.setDeleted(true);
-      messagingTemplate.convertAndSend("/topic/threads", event);
+      messagingTemplate.convertAndSend(threadTopic(event.getChannelId()), event);
     }
     return ResponseEntity.ok("Deleted");
   }
@@ -482,8 +481,7 @@ public class ChatController {
   }
 
   @MessageMapping("/chat.send")
-  @SendTo("/topic/messages")
-  public ChatMessage sendMessage(ChatMessage chatMessage) {
+  public void sendMessage(ChatMessage chatMessage) {
     // クライアントから送信されたメッセージを使用（既にuserIdとuserNameが含まれている）
     MessageData savedMessage = chatService.saveMessage(
         chatMessage.getChannelId(),
@@ -492,7 +490,31 @@ public class ChatController {
         null,
         chatMessage.getImportance());
 
-    return savedMessage != null ? buildChatMessage(savedMessage, "NEW") : chatMessage;
+    if (savedMessage != null) {
+      ChatMessage event = buildChatMessage(savedMessage, "NEW");
+      messagingTemplate.convertAndSend(channelTopic(savedMessage.channelId()), event);
+    }
+  }
+
+  @MessageMapping("/dm.send")
+  public void sendDirectMessage(DirectMessageEvent dmEvent) {
+    // クライアントから送信されたメッセージを使用（senderIdとreceiverIdが含まれている）
+    if (dmEvent.getSenderId() == null || dmEvent.getReceiverId() == null || dmEvent.getMessageText() == null) {
+      return;
+    }
+    
+    DirectMessageData message = chatService.sendDirectMessage(
+        dmEvent.getSenderId(),
+        dmEvent.getReceiverId(),
+        dmEvent.getMessageText());
+    chatService.logActivity(dmEvent.getSenderId(), "DM_SENT", "ダイレクトメッセージを送信しました", null, "DM");
+
+    if (message != null) {
+      DirectMessageEvent event = buildDirectMessageEvent(message, "NEW");
+      if (event != null) {
+        messagingTemplate.convertAndSend(dmTopic(dmEvent.getSenderId(), dmEvent.getReceiverId()), event);
+      }
+    }
   }
 
   // DM機能
@@ -916,6 +938,17 @@ public class ChatController {
       return "/topic/dm." + userId1 + "_" + userId2;
     }
     return "/topic/dm." + userId2 + "_" + userId1;
+  }
+
+  private String channelTopic(int channelId) {
+    return "/topic/channel." + channelId;
+  }
+
+  private String threadTopic(Integer channelId) {
+    if (channelId == null) {
+      return "/topic/channel.unknown.threads";
+    }
+    return "/topic/channel." + channelId + ".threads";
   }
 
   private DirectMessageEvent buildDirectMessageEvent(DirectMessageData data, String eventType) {

@@ -51,11 +51,16 @@
                                 </form>
                             </div>
                         </li>
+                        <li class="slack-channel-item" style="padding: 4px 8px;">
+                            <button type="button" id="addChannelButton" class="slack-add-channel-btn" style="background: none; border: none; color: var(--slack-text-secondary); cursor: pointer; font-size: 14px; padding: 4px 0; width: 100%; text-align: left;">
+                                <span style="margin-right: 4px;">+</span>チャンネルを追加する
+                            </button>
+                        </li>
                     </ul>
                 </div>
             </div>
             
-            <div class="slack-create-channel">
+            <div class="slack-create-channel" id="createChannelForm" style="display: none;">
                 <div class="slack-create-channel-form">
                     <form method="post" th:action="@{/chat/channel/create}" class="channel-create-form">
                         <label class="channel-create-label">チャンネル名</label>
@@ -77,17 +82,24 @@
                         </div>
 
                         <div class="channel-create-invite" th:if="${allUsers != null}">
-                            <label class="channel-create-label">初期メンバーを招待</label>
-                            <div class="channel-create-invite-list">
-                                <label th:each="user : ${allUsers}">
-                                    <input type="checkbox" name="invitees"
-                                           th:value="${user.userId()}" />
-                                    <span th:text="${user.userName()}">ユーザー名</span>
-                                </label>
+                            <button type="button" id="toggleInviteButton" class="channel-invite-toggle-btn" style="background: rgba(255, 255, 255, 0.1); border: 1px solid var(--slack-border); border-radius: 4px; padding: 8px; color: var(--slack-text-secondary); cursor: pointer; font-size: 13px; width: 100%; text-align: left;">
+                                初期メンバーを招待
+                            </button>
+                            <div id="inviteList" style="display: none; margin-top: 8px;">
+                                <div class="channel-create-invite-list">
+                                    <label th:each="user : ${allUsers}">
+                                        <input type="checkbox" name="invitees"
+                                               th:value="${user.userId()}" />
+                                        <span th:text="${user.userName()}">ユーザー名</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
-                        <button type="submit">チャンネルを作成</button>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button type="submit" style="flex: 1;">作成</button>
+                            <button type="button" id="cancelChannelButton" style="flex: 1; background-color: var(--slack-border); color: var(--slack-text-primary); border: none; border-radius: 4px; padding: 8px 16px; font-size: 14px; cursor: pointer;">キャンセル</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -167,6 +179,47 @@
             channelList.style.display = isHidden ? 'block' : 'none';
             this.textContent = isHidden ? '▼ チャンネル' : '▶ チャンネル';
         });
+        
+        // チャンネル追加ボタンのクリック処理
+        document.getElementById('addChannelButton').addEventListener('click', function() {
+            const form = document.getElementById('createChannelForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                const input = form.querySelector('input[name="channelName"]');
+                if (input) {
+                    input.focus();
+                }
+            }
+        });
+        
+        // キャンセルボタンのクリック処理
+        document.getElementById('cancelChannelButton').addEventListener('click', function() {
+            document.getElementById('createChannelForm').style.display = 'none';
+            const form = document.querySelector('.channel-create-form');
+            if (form) {
+                form.reset();
+                // ラジオボタンをデフォルトに戻す
+                const publicRadio = form.querySelector('input[value="true"]');
+                if (publicRadio) {
+                    publicRadio.checked = true;
+                }
+            }
+            const inviteList = document.getElementById('inviteList');
+            if (inviteList) {
+                inviteList.style.display = 'none';
+            }
+        });
+        
+        // 初期メンバー招待のトグル
+        const toggleInviteButton = document.getElementById('toggleInviteButton');
+        if (toggleInviteButton) {
+            toggleInviteButton.addEventListener('click', function() {
+                const inviteList = document.getElementById('inviteList');
+                if (inviteList) {
+                    inviteList.style.display = inviteList.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
