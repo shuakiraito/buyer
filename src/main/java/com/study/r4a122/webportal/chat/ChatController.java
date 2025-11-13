@@ -501,9 +501,12 @@ public class ChatController {
   public void sendDirectMessage(DirectMessageEvent dmEvent, Principal principal) {
     // セキュリティ: Principalがnullの場合は認証エラーとして処理
     if (principal == null) {
-      System.err.println("認証されていないユーザーからのDM送信要求を拒否しました。");
+      System.err.println("! エラー: 認証されていないユーザーからのDM送信要求を拒否しました。");
+      System.err.println("  (Principalがnullです。WebSocket接続時に認証情報が設定されていません)");
       return;
     }
+    
+    System.out.println("DM送信: Principal = " + principal.getName() + ", クライアントのsenderId = " + dmEvent.getSenderId());
     
     // principal.getName()には、現在ログインしているユーザーのIDが自動的に入る
     String actualSenderId = principal.getName();
