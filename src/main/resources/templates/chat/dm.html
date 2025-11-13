@@ -87,6 +87,120 @@
             </div>
         </div>
     </div>
+    
+    <script th:inline="javascript">
+        const userId = /*[[${userId}]]*/ '';
+        
+        // ユーザー一覧を定期的に更新（30秒ごと）
+        function refreshUserList() {
+            fetch('/chat/users')
+                .then(response => response.json())
+                .then(users => {
+                    // 現在のユーザーを除外
+                    const otherUsers = users.filter(u => u.userId !== userId);
+                    
+                    // ユーザーリストのセクションを更新
+                    const userSection = document.querySelector('.dm-user-section:last-of-type');
+                    const emptyFeedback = document.querySelector('.dm-empty-feedback');
+                    
+                    if (otherUsers.length > 0) {
+                        // 空のフィードバックを非表示
+                        if (emptyFeedback) {
+                            emptyFeedback.style.display = 'none';
+                        }
+                        
+                        // ユーザーリストを更新
+                        if (userSection) {
+                            const userList = userSection.querySelector('.dm-user-list');
+                            if (userList) {
+                                userList.innerHTML = otherUsers.map(user => {
+                                    const userName = user.userName || user.userId;
+                                    const role = user.role;
+                                    let roleBadge = '';
+                                    if (role === 'ROLE_TEACHER') {
+                                        roleBadge = '<span class="dm-user-meta">講師</span>';
+                                    } else if (role === 'ROLE_ADMIN') {
+                                        roleBadge = '<span class="dm-user-meta">管理者</span>';
+                                    }
+                                    
+                                    return '<li>' +
+                                        '<a href="/chat/dm/' + user.userId + '" class="dm-user-link">' +
+                                        '<div class="dm-user-primary">' +
+                                        '<span class="dm-user-name">' + escapeHtml(userName) + '</span>' +
+                                        roleBadge +
+                                        '</div>' +
+                                        '<span class="dm-user-chevron">›</span>' +
+                                        '</a>' +
+                                        '</li>';
+                                }).join('');
+                            }
+                        } else {
+                            // ユーザーセクションが存在しない場合は作成
+                            const emptyStateCard = document.querySelector('.dm-empty-state-card');
+                            if (emptyStateCard) {
+                                // 既存の空のフィードバックを削除
+                                if (emptyFeedback) {
+                                    emptyFeedback.remove();
+                                }
+                                
+                                const newSection = document.createElement('div');
+                                newSection.className = 'dm-user-section';
+                                newSection.innerHTML = 
+                                    '<h3>ユーザーを選択して会話を開始</h3>' +
+                                    '<ul class="dm-user-list">' +
+                                    otherUsers.map(user => {
+                                        const userName = user.userName || user.userId;
+                                        const role = user.role;
+                                        let roleBadge = '';
+                                        if (role === 'ROLE_TEACHER') {
+                                            roleBadge = '<span class="dm-user-meta">講師</span>';
+                                        } else if (role === 'ROLE_ADMIN') {
+                                            roleBadge = '<span class="dm-user-meta">管理者</span>';
+                                        }
+                                        
+                                        return '<li>' +
+                                            '<a href="/chat/dm/' + user.userId + '" class="dm-user-link">' +
+                                            '<div class="dm-user-primary">' +
+                                            '<span class="dm-user-name">' + escapeHtml(userName) + '</span>' +
+                                            roleBadge +
+                                            '</div>' +
+                                            '<span class="dm-user-chevron">›</span>' +
+                                            '</a>' +
+                                            '</li>';
+                                    }).join('') +
+                                    '</ul>';
+                                emptyStateCard.appendChild(newSection);
+                            }
+                        }
+                    } else {
+                        // ユーザーがいない場合
+                        if (userSection) {
+                            userSection.style.display = 'none';
+                        }
+                        if (emptyFeedback) {
+                            emptyFeedback.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('ユーザー一覧の取得に失敗しました:', err);
+                });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ページ読み込み時に初回更新、その後30秒ごとに更新
+        window.addEventListener('load', function() {
+            // 初回は少し遅延させてから更新（サーバー側のデータが確実に反映されるように）
+            setTimeout(refreshUserList, 1000);
+            // 30秒ごとに更新
+            setInterval(refreshUserList, 30000);
+        });
+    </script>
 </body>
 </html>
 
