@@ -482,16 +482,27 @@ public class ChatController {
   }
 
   @MessageMapping("/chat.send")
-  public void sendMessage(ChatMessage chatMessage) {
-    // クライアントから送信されたメッセージを使用（既にuserIdとuserNameが含まれている）
+  public void sendMessage(ChatMessage chatMessage, Principal principal) {
+    // セキュリティ: Principalがnullの場合は認証エラーとして処理
+    if (principal == null) {
+      System.err.println("! エラー: 認証されていないユーザーからのチャンネル送信要求を拒否しました。");
+      return;
+    }
+    
+    // 認証済みのIDを取得
+    String actualSenderId = principal.getName();
+    
+    // クライアントから送信されたメッセージを使用
     MessageData savedMessage = chatService.saveMessage(
         chatMessage.getChannelId(),
-        chatMessage.getUserId(),
+        actualSenderId, // クライアント申告のIDではなく、認証済みのIDを使う
         chatMessage.getMessageText(),
         null,
         chatMessage.getImportance());
 
     if (savedMessage != null) {
+      // 保存したメッセージをすべてのチャンネル参加者にブロードキャスト
+      // （savedMessage にはDBがJOINした正しいユーザー名が含まれる）
       ChatMessage event = buildChatMessage(savedMessage, "NEW");
       messagingTemplate.convertAndSend(channelTopic(savedMessage.channelId()), event);
     }
@@ -561,7 +572,7 @@ public class ChatController {
   }
 
   @GetMapping("/chat/dm/{partnerId}")
-  public String dmConversation(@PathVariable String partnerId, Model model) {
+  public String dmConversation(@PathVariable(name = "partnerId") String partnerId, Model model) {
     String userId = loginService.getLoginUserId();
     if (userId == null) {
       return "redirect:/login";
@@ -770,7 +781,7 @@ public class ChatController {
 
   @PostMapping("/chat/invitation/{invitationId}/respond")
   public ResponseEntity<String> respondInvitation(
-      @PathVariable int invitationId,
+      @PathVariable(name = "invitationId") int invitationId,
       @RequestParam(name = "accept") boolean accept) {
     String userId = loginService.getLoginUserId();
     if (userId == null) {
@@ -813,7 +824,7 @@ public class ChatController {
   // ファイルアップロード
   @PostMapping("/chat/message/{messageId}/file")
   public ResponseEntity<String> uploadFile(
-      @PathVariable int messageId,
+      @PathVariable(name = "messageId") int messageId,
       @RequestParam("file") MultipartFile file) {
     String userId = loginService.getLoginUserId();
     if (userId == null) {
@@ -875,7 +886,7 @@ public class ChatController {
 
   // メッセージファイル取得
   @GetMapping("/chat/message/{messageId}/files")
-  public ResponseEntity<List<MessageFileData>> getMessageFiles(@PathVariable int messageId) {
+  public ResponseEntity<List<MessageFileData>> getMessageFiles(@PathVariable(name = "messageId") int messageId) {
     String userId = loginService.getLoginUserId();
     if (userId == null) {
       return ResponseEntity.status(401).build();

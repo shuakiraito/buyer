@@ -2,6 +2,7 @@ package com.study.r4a122.webportal;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +25,8 @@ public class WebConfig {
   public ObjectMapper objectMapper() {
     ObjectMapper mapper = new ObjectMapper();
     mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    // Java 8日時型（LocalDateTime等）をサポートするモジュールを登録
+    mapper.registerModule(new JavaTimeModule());
     return mapper;
   }
 }

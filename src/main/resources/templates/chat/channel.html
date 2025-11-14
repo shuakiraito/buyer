@@ -1205,11 +1205,12 @@
             const messageText = messageInput.value.trim();
             
             if (messageText) {
+                // WebSocket経由でメッセージを送信
                 const chatMessage = {
                     channelId: channelId,
-                    userId: userId,
-                    userName: userName,
-                    messageText: messageText
+                    // userId と userName を削除（サーバーが認証情報から設定するため）
+                    messageText: messageText,
+                    importance: 'NORMAL'
                 };
                 
                 stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
@@ -1238,9 +1239,9 @@
                 // メッセージテキストがなくてもファイルのみ送信可能
                 const chatMessage = {
                     channelId: channelId,
-                    userId: userId,
-                    userName: userName,
-                    messageText: '[ファイル]'
+                    // userId と userName を削除（サーバーが認証情報から設定するため）
+                    messageText: '[ファイル]',
+                    importance: 'NORMAL'
                 };
                 
                 stompClient.send("/app/chat.send", {}, JSON.stringify(chatMessage));
